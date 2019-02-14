@@ -21,7 +21,7 @@ class Env(object):
     #os.mkdir(self.run_dir)
 
     if os.path.isdir(self.run_dir):
-      shutil.rmtree(self.run_dir)
+      shutil.rmtree(self.run_dir, ignore_errors=True)
 
     shutil.copytree(pgm_dir, self.run_dir)
    # files = []
