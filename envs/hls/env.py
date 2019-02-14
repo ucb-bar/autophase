@@ -11,10 +11,10 @@ class Env(object):
 
     self.delete_run_dir = delete_run_dir
     if run_dir:
-      self.run_dir = run_dir
+      self.run_dir = run_dir+'_p'+str(os.getpid())
     else:
       currentDT = datetime.datetime.now()
-      self.run_dir ="run-"+currentDT.strftime("%Y-%m-%d-%H-%M-%S-%f")
+      self.run_dir ="run-"+currentDT.strftime("%Y-%m-%d-%H-%M-%S-%f")+'_p'+str(os.getpid())
 
     cwd = os.getcwd()
     self.run_dir = os.path.join(cwd, self.run_dir)
