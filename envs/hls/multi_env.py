@@ -46,7 +46,7 @@ class HLSMultiEnv(gym.Env):
 
   def step(self, action):
     self.idx = (self.idx + 1)  % self.num_pgms  
-    obs, reward = self.envs[self.idx].step()
+    obs, reward = self.envs[self.idx].step(action)
     info = {}
     done = False ## TODO What to do here
     return obs, reward, done, info
