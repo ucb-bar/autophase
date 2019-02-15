@@ -93,6 +93,7 @@ def getHWCycles(c_code, opt_indice, path=".", sim=False):
     f = open( path+"/Makefile","w")
     f.write(makefile_new)
     f.close()    
+    done = False
     # Run HLS
     #proc = subprocess.Popen(["make accelerationCycle -s"], stdout=subprocess.PIPE, shell=True)
     if sim:
@@ -131,11 +132,12 @@ def getHWCycles(c_code, opt_indice, path=".", sim=False):
           hw_cycle = m.group(1)
           if int(hw_cycle) == 0:
             hw_cycle = 10000000
+            done = True
       else:
-          #print ("NM")
           hw_cycle = 10000000 # problematic 
+          done = True
       #print("Cycles: %s"%hw_cycle)
-    return int(hw_cycle)
+    return int(hw_cycle), done
 
 def main():
   #indices=[16, 25, 6, 10, 23, 22, 18, 11, 31, 34, 27, 33]

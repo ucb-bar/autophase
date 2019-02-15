@@ -55,9 +55,9 @@ class Env(object):
     #os.chdir("..")
 
   def get_rewards(self, sim=False):
-    cycle = getcycle.getHWCycles(self.pgm_name, self.passes, self.run_dir, sim=sim)
+    cycle, done = getcycle.getHWCycles(self.pgm_name, self.passes, self.run_dir, sim=sim)
     #print("passes: {}, rw: {}".format(self.passes, -cycle))
-    return -cycle
+    return cycle, done
 
   def get_obs(self):
     #os.chdir(self.run_dir)
@@ -77,7 +77,7 @@ class Env(object):
       self.passes.extend(init)
 
     if ret:
-      reward = self.get_rewards(sim=sim)
+      reward, _ = self.get_rewards(sim=sim)
       obs = []
       if get_obs:
         obs = self.get_obs()
@@ -88,11 +88,11 @@ class Env(object):
 
   def step(self, action, get_obs=True):
     self.passes.append(action)
-    reward = self.get_rewards()
+    reward, done = self.get_rewards()
     obs = []
     if get_obs:
       obs = self.get_obs()
-    return (obs, reward)
+    return (obs, reward, done)
     
   def multi_steps(self, actions):
     self.passes.extend(actions)
