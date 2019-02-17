@@ -1,5 +1,5 @@
-import gym_hls.envs.getcycle
-import gym_hls.envs.getfeatures
+from gym_hls.envs import getcycle
+from gym_hls.envs import getfeatures
 import os
 import datetime
 import glob
@@ -11,7 +11,7 @@ from gym_hls.envs.hls_env import HLSEnv
 
 # Init: 8 progs, 8 envs 
 # Reset: reset pgm_count 
-# Step: (prog++) % #prog
+# Step: (prog) % #prog
 class HLSMultiEnv(gym.Env):
   def __init__(self, env_config):
     self.action_space = Discrete(45)
@@ -21,7 +21,7 @@ class HLSMultiEnv(gym.Env):
     self.envs = []
     self.idx = np.random.randint(self.num_pgms) 
 
-    from chstone_bm import get_chstone, get_others
+    from gym_hls.envs.chstone_bm import get_chstone, get_others
     bms = get_chstone(N=self.num_pgms)
     for i, bm in enumerate(bms):
       pgm, path = bm
@@ -31,25 +31,14 @@ class HLSMultiEnv(gym.Env):
       env_config['run_dir'] = str(i)
       self.envs.append(HLSEnv(env_config))
 
-  def get_cycles(self):
-    done = False ## TODO What to do here
-    cycle = self.envs[self.idx].get_cycles()
-    return cycle,done
-
-  def get_obs(self):
-    feat = self.envs[self.idx].get_obs()
-    return feat
-
   def reset(self):
-    self.idx = np.random.randint(self.num_pgms)
-    obs, reward = self.envs[self.idx].reset()
+    self.idx = (self.idx + 1)  % self.num_pgms  
+    obs, rew = self.envs[self.idx].reset()
     return obs
 
   def step(self, action):
-    self.idx = (self.idx + 1)  % self.num_pgms  
-    obs, reward = self.envs[self.idx].step(action)
+    obs, reward, done = self.envs[self.idx].step(action)
     info = {}
-    done = False ## TODO What to do here
     return obs, reward, done, info
 
 
