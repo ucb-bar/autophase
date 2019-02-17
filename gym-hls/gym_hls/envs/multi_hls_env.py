@@ -1,13 +1,13 @@
-import getcycle
+import gym_hls.envs.getcycle
+import gym_hls.envs.getfeatures
 import os
-import getfeatures
 import datetime
 import glob
 import shutil
 import numpy as np
 import gym
 from gym.spaces import Discrete, Box
-from hls_env import HLSEnv
+from gym_hls.envs.hls_env import HLSEnv
 
 # Init: 8 progs, 8 envs 
 # Reset: reset pgm_count 

@@ -1,6 +1,6 @@
-import getcycle
+import gym_hls.envs.getcycle
+import gym_hls.envs.getfeatures
 import os
-import getfeatures
 import datetime
 import glob
 import shutil

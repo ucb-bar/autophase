@@ -1,4 +1,4 @@
-import numpy as np
+:import numpy as np
 def geomean(iterable):
     a = np.array(iterable).astype(float)
     prod = a.prod()

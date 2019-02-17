@@ -1,13 +1,11 @@
-import re 
-import geto3
+import gym_hls.envs.geto3
+import gym_hls.envs.getpgm
 import subprocess
 from  subprocess import call
 import os
-import getpgm
+import re 
 
-#features = [' # of BB where total args for phi nodes is [1, 5]', " # of BB's with Phi node # in range (0, 3]", " # of BB's with no Phi nodes", ' # of Phinodes at beginning of BB', ' # of calls that return an int', ' Binary operations with a constant operand', ' # of Add insts', ' # of And insts', " # of BB's with instructions between [15, 500]", " # of BB's with less than 15 instructions", ' # of Br insts', ' # of Call insts', ' # of GetElementPtr insts', ' # of ICmp insts', ' # of LShr insts', ' # of Load insts', ' # of PHI insts', ' # of Ret insts', ' # of SExt insts', ' # of Select insts', ' # of Shl insts', ' # of Store insts', ' # of Trunc insts', ' # of Xor insts', ' # of ZExt insts', ' # of basic blocks', ' # of instructions (of all types)', ' # of memory instructions', ' # of nonexternal functions', ' Total arguments to Phi nodes', ' Unary']
 features = ["# of BB where total args for phi nodes > 5", "# of BB where total args for phi nodes is [1, 5]", "# of BB's with 1 predecessor", "# of BB's with 1 predecessor and 1 successor", "# of BB's with 1 predecessor and 2 successors", "# of BB's with 1 successor", "# of BB's with 2 predecessors", "# of BB's with 2 predecessors and 1 successor", "# of BB's with 2 predecessors and successors", "# of BB's with 2 successors", "# of BB's with >2 predecessors", "# of BB's with Phi node # in range (0, 3]", "# of BB's with more than 3 Phi nodes", "# of BB's with no Phi nodes", "# of Phi-nodes at beginning of BB", "# of branches", "# of calls that return an int", "# of critical edges", "# of edges", "# of occurrences of 32-bit integer constants", "# of occurrences of 64-bit integer constants", "# of occurrences of constant 0", "# of occurrences of constant 1", "# of unconditional branches", "Binary operations with a constant operand", "Number of AShr insts", "Number of Add insts", "Number of Alloca insts", "Number of And insts", "Number of BB's with instructions between [15, 500]", "Number of BB's with less than 15 instructions", "Number of BitCast insts", "Number of Br insts", "Number of Call insts", "Number of GetElementPtr insts", "Number of ICmp insts", "Number of LShr insts", "Number of Load insts", "Number of Mul insts", "Number of Or insts", "Number of PHI insts", "Number of Ret insts", "Number of SExt insts", "Number of Select insts", "Number of Shl insts", "Number of Store insts", "Number of Sub insts", "Number of Trunc insts", "Number of Xor insts", "Number of ZExt insts", "Number of basic blocks", "Number of instructions (of all types)", "Number of memory instructions", "Number of non-external functions", "Total arguments to Phi nodes", "Unary"] 
-
 
 def run_stats(bc_code, path="."):
     opt_path = "/scratch/qijing.huang/LegUp/legup-4.0/llvm/Release+Asserts/bin/"
@@ -30,8 +28,6 @@ def parse_static_features_str(out):
       else:
         feat_ids.append(0) 
       
-    #print (len(feat_ids))
-    #print (feat_ids)
     return feat_ids
 
 
