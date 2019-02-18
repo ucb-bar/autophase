@@ -13,7 +13,7 @@ from gym_hls.envs.hls_env import HLSEnv
 # Reset: reset pgm_count 
 # Step: (prog) % #prog
 class HLSMultiEnv(gym.Env):
-  def __init__(self, env_config):
+  def __init__(self, env_configs):
     self.action_space = Discrete(45)
     self.observation_space= Box(0.0,1.0,shape=(56,),dtype = np.float32)
 
@@ -25,11 +25,11 @@ class HLSMultiEnv(gym.Env):
     bms = get_chstone(N=self.num_pgms)
     for i, bm in enumerate(bms):
       pgm, path = bm
-      env_config = {}
-      env_config['pgm'] = pgm
-      env_config['pgm_dir'] = path
-      env_config['run_dir'] = str(i)
-      self.envs.append(HLSEnv(env_config))
+      env_configs = {}
+      env_configs['pgm'] = pgm
+      env_configs['pgm_dir'] = path
+      env_configs['run_dir'] = 'run_'+str(i)
+      self.envs.append(HLSEnv(env_configs))
 
   def reset(self):
     self.idx = (self.idx + 1)  % self.num_pgms  
@@ -37,8 +37,7 @@ class HLSMultiEnv(gym.Env):
     return obs
 
   def step(self, action):
-    obs, reward, done = self.envs[self.idx].step(action)
-    info = {}
+    obs, reward, done, info = self.envs[self.idx].step(action)
     return obs, reward, done, info
 
 
