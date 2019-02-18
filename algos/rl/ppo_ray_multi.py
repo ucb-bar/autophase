@@ -6,20 +6,11 @@ from gym_hls.envs.hls_multi_env import HLSMultiEnv
 
 ray.init()
 env_configs = {}
- 
-num_pgms = 1
-from gym_hls.envs.chstone_bm import get_chstone, get_others
-bms = get_chstone(N=num_pgms)
-for i, bm in enumerate(bms):
-  pgm, path = bm
-  env_configs['pgm'] = pgm 
-  env_configs['pgm_dir'] = path
-  env_configs['run_dir'] = 'run_'+str(i)
 
 tune.run_experiments({
     "my_experiment": {
         "run": "PPO",
-        "env":HLSEnv,
+        "env":HLSMultiEnv,
         "stop": {"episode_reward_mean": 0},
         "config": {
             "sample_batch_size": 100,
