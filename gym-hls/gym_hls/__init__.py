@@ -9,7 +9,7 @@ register(
 )
 
 register(
-    id='MultiHLS-v0',
-    entry_point='gym_hls.envs:MultiHLSEnv',
+    id='HLSMulti-v0',
+    entry_point='gym_hls.envs:HLSMultiEnv',
 )
 
