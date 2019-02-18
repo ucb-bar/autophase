@@ -33,7 +33,7 @@ class HLSMultiEnv(gym.Env):
 
   def reset(self):
     self.idx = (self.idx + 1)  % self.num_pgms  
-    obs, rew = self.envs[self.idx].reset()
+    obs = self.envs[self.idx].reset()
     return obs
 
   def step(self, action):
