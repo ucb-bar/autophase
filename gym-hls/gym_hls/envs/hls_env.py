@@ -56,12 +56,15 @@ class HLSEnv(gym.Env):
 
   def get_rewards(self, diff=True, sim=False):
     cycle, done = getcycle.getHWCycles(self.pgm_name, self.passes, self.run_dir, sim=sim)
+   # print("pass: {}".format(self.passes))
+   # print("prev_cycles: {}".format(self.prev_cycles))
+   # print("cycle: {}".format(cycle))
     if (diff): 
       rew = self.prev_cycles - cycle
       self.prev_cycles = cycle
     else:
       rew = -cycle   
-    print(rew)
+   # print("rew: {}".format(rew))
     return rew, done
 
   def get_obs(self):
@@ -101,6 +104,11 @@ class HLSEnv(gym.Env):
   def multi_steps(self, actions):
     self.passes.extend(actions)
     return (self.get_obs(), self.get_rewards())
+
+  def render():
+    print("pass: {}".format(self.passes))
+    print("prev_cycles: {}".format(self.prev_cycles))
+
 
 def getO3():
   import time

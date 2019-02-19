@@ -13,23 +13,23 @@ from gym_hls.envs.hls_env import HLSEnv
 # Reset: reset pgm_count 
 # Step: (prog) % #prog
 class HLSMultiEnv(gym.Env):
-  def __init__(self, env_configs):
+  def __init__(self, env_config):
     self.action_space = Discrete(45)
     self.observation_space= Box(0.0,1.0,shape=(56,),dtype = np.float32)
 
-    self.num_pgms = 8 
+    self.num_pgms = 6 
     self.envs = []
     self.idx = np.random.randint(self.num_pgms) 
 
-    from gym_hls.envs.chstone_bm import get_chstone, get_others
-    bms = get_chstone(N=self.num_pgms)
+    from gym_hls.envs.chstone_bm import get_chstone, get_orig6
+    bms = get_orig6()
     for i, bm in enumerate(bms):
       pgm, path = bm
-      env_configs = {}
-      env_configs['pgm'] = pgm
-      env_configs['pgm_dir'] = path
-      env_configs['run_dir'] = 'run_'+str(i)
-      self.envs.append(HLSEnv(env_configs))
+      env_config = {}
+      env_config['pgm'] = pgm
+      env_config['pgm_dir'] = path
+      env_config['run_dir'] = 'run_'+str(i)
+      self.envs.append(HLSEnv(env_config))
 
   def reset(self):
     self.idx = (self.idx + 1)  % self.num_pgms  
@@ -41,3 +41,5 @@ class HLSMultiEnv(gym.Env):
     return obs, reward, done, info
 
 
+  def render():
+    self.envs[self.idx].render()
