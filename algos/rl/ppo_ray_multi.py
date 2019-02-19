@@ -11,16 +11,17 @@ tune.run_experiments({
     "my_experiment": {
         "run": "PPO",
         "env":HLSMultiEnv,
-        "stop": {"episode_reward_mean": 0},
+        "checkpoint_freq": 4,
+        "stop": {"episode_reward_mean": 100},
         "config": {
             "sample_batch_size": 100,
             "train_batch_size": 700,
             "sgd_minibatch_size": 70,
-            "horizon": 10,
+            "horizon": 12,
             "num_gpus": 2,
-            "num_workers": 5,
+            "num_workers": 7,
             #"lr": tune.grid_search([0.01, 0.001, 0.0001]),
-            "env_config": env_configs, 
+            "env_config": env_configs,
         },
     },
 })
