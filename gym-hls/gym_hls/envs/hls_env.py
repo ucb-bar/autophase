@@ -1,4 +1,4 @@
-from gym_hls.envs import getcycle 
+from gym_hls.envs import getcycle
 from gym_hls.envs import getfeatures
 import os
 import datetime
@@ -7,13 +7,14 @@ import shutil
 import numpy as np
 import gym
 from gym.spaces import Discrete, Box
+import sys
 
 class HLSEnv(gym.Env):
   def __init__(self, env_config):
     self.action_space = Discrete(45)
     self.observation_space = Box(0.0,1.0,shape=(56,),dtype = np.float32)
     self.prev_cycles = 10000000
-    
+    self.verbose = env_config.get('verbose',False)
     pgm = env_config['pgm']
     pgm_dir = env_config['pgm_dir']
     run_dir = env_config.get('run_dir', None)
@@ -40,7 +41,7 @@ class HLSEnv(gym.Env):
     if init_with_passes:
       self.passes.extend(self.pre_passes)
     self.pgm = pgm
-    self.pgm_name = pgm.replace('.c','') 
+    self.pgm_name = pgm.replace('.c','')
     self.bc = self.pgm_name + '.prelto.2.bc'
     self.delete_run_dir = delete_run_dir
 
@@ -54,16 +55,21 @@ class HLSEnv(gym.Env):
     cycle = getO3Cycles(self.pgm_name, self.run_dir, sim=sim)
     return -cycle
 
+  def print_info(self,message, end = '\n'):
+        sys.stdout.write('\x1b[1;34m' + message.strip() + '\x1b[0m' + end)
+
+
   def get_rewards(self, diff=True, sim=False):
     cycle, done = getcycle.getHWCycles(self.pgm_name, self.passes, self.run_dir, sim=sim)
    # print("pass: {}".format(self.passes))
    # print("prev_cycles: {}".format(self.prev_cycles))
-   # print("cycle: {}".format(cycle))
-    if (diff): 
+    if(self.verbose):
+        self.print_info("program: {} -- ".format(self.pgm_name)+" cycle: {}".format(cycle))
+    if (diff):
       rew = self.prev_cycles - cycle
       self.prev_cycles = cycle
     else:
-      rew = -cycle   
+      rew = -cycle
    # print("rew: {}".format(rew))
     return rew, done
 
@@ -76,6 +82,8 @@ class HLSEnv(gym.Env):
   def reset(self, init=None,init_with_passes=True, get_obs=True, ret=True, sim=False):
     self.prev_cycles, _ = getcycle.getHWCycles(self.pgm_name, self.passes, self.run_dir, sim=sim)
     self.passes = []
+    if(self.verbose):
+        self.print_info("program: {} -- ".format(self.pgm_name)+" reset cycles: {}".format(self.prev_cycles))
     if init_with_passes:
       self.passes.extend(self.pre_passes)
 
@@ -87,20 +95,21 @@ class HLSEnv(gym.Env):
       obs = []
       if get_obs:
         obs = self.get_obs()
-
       return obs
     else:
       return 0
 
   def step(self, action, get_obs=True):
     info = {}
+    if(self.verbose):
+        self.print_info("program: {} --".format(self.pgm_name) + " action: {}".format(action))
     self.passes.append(action)
     reward, done = self.get_rewards()
     obs = []
     if get_obs:
       obs = self.get_obs()
     return (obs, reward, done, info)
-    
+
   def multi_steps(self, actions):
     self.passes.extend(actions)
     return (self.get_obs(), self.get_rewards())
@@ -121,8 +130,8 @@ def getO3():
   for pgm, path in bm:
     print(pgm)
     begin = time.time()
-    
-    env=Env(pgm, path, delete_run_dir=True, init_with_passes=True)  
+
+    env=Env(pgm, path, delete_run_dir=True, init_with_passes=True)
     cycle = - env.get_O3_rewards()
     end = time.time()
     compile_time = end - begin
@@ -150,5 +159,5 @@ def test():
     prod = -prod if prod < 0 else prod
     return prod**(1.0/len(a))
 
-  print(geo_mean(rews)) 
+  print(geo_mean(rews))
 
