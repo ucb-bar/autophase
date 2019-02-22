@@ -24,11 +24,12 @@ class HLSMultiEnv(gym.Env):
     bms = get_orig6()
     for i, bm in enumerate(bms):
       pgm, path = bm
-      env_config = {}
-      env_config['pgm'] = pgm
-      env_config['pgm_dir'] = path
-      env_config['run_dir'] = 'run_'+str(i)
-      self.envs.append(HLSEnv(env_config))
+      env_conf = {}
+      env_conf['pgm'] = pgm
+      env_conf['pgm_dir'] = path
+      env_conf['run_dir'] = 'run_'+str(i)
+      env_conf['normalize']=env_config.get('normalize',False)
+      self.envs.append(HLSEnv(env_conf))
 
   def reset(self):
     self.idx = (self.idx + 1)  % self.num_pgms
@@ -39,11 +40,11 @@ class HLSMultiEnv(gym.Env):
   def step(self, action):
     obs, reward, done, info = self.envs[self.idx].step(action)
     #print("action -- ", action," reward -- ", reward)
-    log_obs = [math.log(e+1) for e in obs]
-    log_reward = np.sign(reward) * math.log(abs(reward)+1)
+    #log_obs = [math.log(e+1) for e in obs]
+    #log_reward = np.sign(reward) * math.log(abs(reward)+1)
     #print(log_obs)
     #print(log_reward)
-    return log_obs, log_reward, done, info
+    return obs, reward, done, info
 
 
   def render():
