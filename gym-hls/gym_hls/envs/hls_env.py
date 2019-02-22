@@ -19,7 +19,7 @@ class HLSEnv(gym.Env):
     pgm_dir = env_config['pgm_dir']
     run_dir = env_config.get('run_dir', None)
     delete_run_dir = env_config.get('delete_run_dir', True)
-    init_with_passes = env_config.get('init_with_passes', True)
+    self.init_with_passes = env_config.get('init_with_passes', False)
     self.delete_run_dir = delete_run_dir
     if run_dir:
       self.run_dir = run_dir+'_p'+str(os.getpid())
@@ -38,8 +38,6 @@ class HLSEnv(gym.Env):
     self.pre_passes_str= "-prune-eh -functionattrs -ipsccp -globalopt -mem2reg -deadargelim -sroa -early-cse -loweratomic -instcombine -loop-simplify"
     self.pre_passes = getcycle.passes2indice(self.pre_passes_str)
     self.passes = []
-    if init_with_passes:
-      self.passes.extend(self.pre_passes)
     self.pgm = pgm
     self.pgm_name = pgm.replace('.c','')
     self.bc = self.pgm_name + '.prelto.2.bc'
@@ -79,12 +77,12 @@ class HLSEnv(gym.Env):
 
   # reset() resets passes to []
   # reset(init=[1,2,3]) resets passes to [1,2,3]
-  def reset(self, init=None,init_with_passes=True, get_obs=True, ret=True, sim=False):
+  def reset(self, init=None,get_obs=True, ret=True, sim=False):
     self.prev_cycles, _ = getcycle.getHWCycles(self.pgm_name, self.passes, self.run_dir, sim=sim)
     self.passes = []
     if(self.verbose):
         self.print_info("program: {} -- ".format(self.pgm_name)+" reset cycles: {}".format(self.prev_cycles))
-    if init_with_passes:
+    if self.init_with_passes:
       self.passes.extend(self.pre_passes)
 
     if init:
