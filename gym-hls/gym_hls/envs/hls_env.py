@@ -15,6 +15,7 @@ class HLSEnv(gym.Env):
     self.observation_space = Box(0.0,1.0,shape=(56,),dtype = np.float32)
     self.prev_cycles = 10000000
     self.verbose = env_config.get('verbose',False)
+    self.norm_obs = env_config.get('normalize', False)
     pgm = env_config['pgm']
     pgm_dir = env_config['pgm_dir']
     run_dir = env_config.get('run_dir', None)
@@ -42,6 +43,7 @@ class HLSEnv(gym.Env):
     self.pgm_name = pgm.replace('.c','')
     self.bc = self.pgm_name + '.prelto.2.bc'
     self.delete_run_dir = delete_run_dir
+    self.original_obs = []
 
   def __del__(self):
     if self.delete_run_dir:
@@ -93,6 +95,10 @@ class HLSEnv(gym.Env):
       obs = []
       if get_obs:
         obs = self.get_obs()
+      if self.norm_obs:
+        self.original_obs = [1.0*(x+1) for x in obs]
+        relative_obs = len(obs)*[1]
+        return relative_obs
       return obs
     else:
       return 0
@@ -106,6 +112,9 @@ class HLSEnv(gym.Env):
     obs = []
     if get_obs:
       obs = self.get_obs()
+    if self.norm_obs:
+      relative_obs =  [1.0*(x+1)/y for x, y in zip(obs, self.original_obs)]
+      obs = relative_obs
     return (obs, reward, done, info)
 
   def multi_steps(self, actions):
