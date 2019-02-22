@@ -5,7 +5,7 @@ from gym_hls.envs.hls_env import HLSEnv
 from gym_hls.envs.hls_multi_env import HLSMultiEnv
 
 ray.init()
-env_configs = {}
+env_configs = {'normalize':True}
 
 tune.run_experiments({
     "my_experiment": {
@@ -17,7 +17,8 @@ tune.run_experiments({
             "sample_batch_size": 100,
             "train_batch_size": 700,
             "sgd_minibatch_size": 70,
-            "horizon": 12,
+            "model": {"use_lstm": True, "max_seq_len":5, "lstm_use_prev_action_reward":True},
+            "horizon": 24,
             "num_gpus": 2,
             "num_workers": 7,
             #"lr": tune.grid_search([0.01, 0.001, 0.0001]),
