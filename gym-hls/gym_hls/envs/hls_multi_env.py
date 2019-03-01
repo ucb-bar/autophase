@@ -29,6 +29,7 @@ class HLSMultiEnv(gym.Env):
       env_conf['pgm_dir'] = path
       env_conf['run_dir'] = 'run_'+str(i)
       env_conf['normalize']=env_config.get('normalize',False)
+      env_conf['log_obs_reward']=env_config.get('log_obs_reward',False)
       self.envs.append(HLSEnv(env_conf))
 
   def reset(self):

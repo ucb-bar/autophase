@@ -8,7 +8,7 @@ import numpy as np
 import gym
 from gym.spaces import Discrete, Box
 import sys
-
+import math
 class HLSEnv(gym.Env):
   def __init__(self, env_config):
     self.action_space = Discrete(45)
@@ -16,6 +16,7 @@ class HLSEnv(gym.Env):
     self.prev_cycles = 10000000
     self.verbose = env_config.get('verbose',False)
     self.norm_obs = env_config.get('normalize', False)
+    self.log_obs_reward = env_config.get('log_obs_reward',False)
     pgm = env_config['pgm']
     pgm_dir = env_config['pgm_dir']
     run_dir = env_config.get('run_dir', None)
@@ -99,6 +100,9 @@ class HLSEnv(gym.Env):
         self.original_obs = [1.0*(x+1) for x in obs]
         relative_obs = len(obs)*[1]
         return relative_obs
+      if self.log_obs_reward:
+        log_obs = [math.log(e+1) for e in obs]
+        return log_obs
       return obs
     else:
       return 0
@@ -115,6 +119,9 @@ class HLSEnv(gym.Env):
     if self.norm_obs:
       relative_obs =  [1.0*(x+1)/y for x, y in zip(obs, self.original_obs)]
       obs = relative_obs
+    if self.log_obs_reward:
+        obs = [math.log(e+1) for e in obs]
+        reward = np.sign(reward) * math.log(abs(reward)+1)
     return (obs, reward, done, info)
 
   def multi_steps(self, actions):
