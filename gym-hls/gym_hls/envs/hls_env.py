@@ -8,20 +8,28 @@ import numpy as np
 import gym
 from gym.spaces import Discrete, Box
 import sys
+from IPython import embed
 
 class HLSEnv(gym.Env):
   def __init__(self, env_config):
+    self.norm_obs = env_config.get('normalize', 0)
+
     self.action_space = Discrete(45)
-    self.observation_space = Box(0.0,1.0,shape=(56,),dtype = np.float32)
+    if self.norm_obs != 2:
+      self.observation_space = Box(0.0,1.0,shape=(56,),dtype = np.float32)
+    else:
+      self.observation_space = Box(0.0,1.0,shape=(56*2,),dtype = np.float32)
+
     self.prev_cycles = 10000000
     self.verbose = env_config.get('verbose',False)
-    self.norm_obs = env_config.get('normalize', False)
     pgm = env_config['pgm']
-    pgm_dir = env_config['pgm_dir']
+    pgm_dir = env_config.get('pgm_dir', None)
+    pgm_files = env_config.get('pgm_files', None)
     run_dir = env_config.get('run_dir', None)
-    delete_run_dir = env_config.get('delete_run_dir', True)
+    delete_run_dir = env_config.get('delete_run_dir', False)
     self.init_with_passes = env_config.get('init_with_passes', False)
     self.delete_run_dir = delete_run_dir
+
     if run_dir:
       self.run_dir = run_dir+'_p'+str(os.getpid())
     else:
@@ -30,11 +38,15 @@ class HLSEnv(gym.Env):
 
     cwd = os.getcwd()
     self.run_dir = os.path.join(cwd, self.run_dir)
-
+    print(self.run_dir) 
     if os.path.isdir(self.run_dir):
       shutil.rmtree(self.run_dir, ignore_errors=True)
-
-    shutil.copytree(pgm_dir, self.run_dir)
+    if pgm_dir: 
+      shutil.copytree(pgm_dir, self.run_dir)
+    if pgm_files: 
+      os.makedirs(self.run_dir)
+      for f in pgm_files:
+        shutil.copy(f, self.run_dir) 
 
     self.pre_passes_str= "-prune-eh -functionattrs -ipsccp -globalopt -mem2reg -deadargelim -sroa -early-cse -loweratomic -instcombine -loop-simplify"
     self.pre_passes = getcycle.passes2indice(self.pre_passes_str)
@@ -42,7 +54,6 @@ class HLSEnv(gym.Env):
     self.pgm = pgm
     self.pgm_name = pgm.replace('.c','')
     self.bc = self.pgm_name + '.prelto.2.bc'
-    self.delete_run_dir = delete_run_dir
     self.original_obs = []
 
   def __del__(self):
@@ -95,10 +106,16 @@ class HLSEnv(gym.Env):
       obs = []
       if get_obs:
         obs = self.get_obs()
-      if self.norm_obs:
+
+      if self.norm_obs != 0:
         self.original_obs = [1.0*(x+1) for x in obs]
         relative_obs = len(obs)*[1]
-        return relative_obs
+        if self.norm_obs == 1:
+          obs = relative_obs
+        elif self.norm_obs == 2:
+          obs.extend(relative_obs)
+        else:
+          raise
       return obs
     else:
       return 0
@@ -112,13 +129,22 @@ class HLSEnv(gym.Env):
     obs = []
     if get_obs:
       obs = self.get_obs()
-    if self.norm_obs:
+    if self.norm_obs != 0:
       relative_obs =  [1.0*(x+1)/y for x, y in zip(obs, self.original_obs)]
-      obs = relative_obs
+      if self.norm_obs == 1:
+        obs = relative_obs
+      elif self.norm_obs == 2:
+        obs.extend(relative_obs)
     return (obs, reward, done, info)
 
   def multi_steps(self, actions):
+    rew = self.get_rewards()
     self.passes.extend(actions)
+    obs = self.get_obs()
+    if self.norm_obs:
+      relative_obs =  [1.0*(x+1)/y for x, y in zip(obs, self.original_obs)]
+      relative_obs.extend(obs)
+
     return (self.get_obs(), self.get_rewards())
 
   def render():

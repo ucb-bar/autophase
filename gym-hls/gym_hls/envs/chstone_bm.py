@@ -1,5 +1,16 @@
 # Returns list of (pgm, pgm_dir) tuple
-def get_chstone(path= "/scratch/qijing.huang/LegUp/legup-4.0/examples/chstone/", N=12):
+# Returns list of (pgm, pmg_files) tuple
+from gym_hls.envs.utils import lsFiles
+
+def get_random(path="/scratch/qijing.huang/random_pgm/dataset", N=10):
+    pgms = lsFiles(path)
+    random_list = []
+    for i in range(N):
+      random_list.append(pgms[i], path) 
+    print(random_list)
+    return random_list 
+   
+def get_chstone(path= "/scratch/qijing.huang/LegUp/legup-4.0/examples/chstone/", N=12, use_dir=True):
   chstone = [
  ( "adpcm","adpcm"),
  ( "aes","aes"),
@@ -15,30 +26,29 @@ def get_chstone(path= "/scratch/qijing.huang/LegUp/legup-4.0/examples/chstone/",
  ( "sha","sha_driver")
   ]
 
-
   chstone_list = []
-  #for key, value in chstone.items():
   for key, value in chstone:
-    chstone_list.append((value+".c", path+key+"/"))
-
+    if use_dir: 
+      chstone_list.append((value+".c", path+key+"/"))
+    else: 
+      files = lsFiles(path+key) 
+      chstone_list.append((value+".c", files))
   return chstone_list[:N]
 
-def get_others(path="/scratch/qijing.huang/LegUp/legup-4.0/examples/"):
+def get_others(path="/scratch/qijing.huang/LegUp/legup-4.0/examples/", use_dir=True):
   others = [
   ("fir" ,"fir"),
   ("dhrystone" ,"dhry"),
   ("qsort" ,"qsort"),
   ("matrixmultiply" ,"matrixmultiply")]
 
-  #"fft" :"fft",
-  #"shift" :"shift",
-  #"llist" :"llist"
-
   others_list = []
-  #for key, value in others.items():
   for key, value in others:
-    others_list.append((value+".c", path+key+"/"))
-
+    if use_dir: 
+      others_list.append((value+".c", path+key+"/"))
+    else:
+      files = lsFiles(path+key) 
+      others_list.append((value+".c", files))
   return others_list
 
 
