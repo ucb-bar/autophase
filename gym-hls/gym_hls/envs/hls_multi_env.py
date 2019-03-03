@@ -17,13 +17,14 @@ class HLSMultiEnv(gym.Env):
 
     bm_name = env_config.get('bm_name', 'chstone')
     self.num_pgms = env_config.get('num_pgms', 6)
-    self.norm_obs = env_config.get('normalize', 0)
+    self.norm_obs = env_config.get('normalize', False)
+    self.orig_norm_obs = env_config.get('orig_and_normalize', False)
 
     self.action_space = Discrete(45)
-    if self.norm_obs != 2:
-      self.observation_space = Box(0.0,1.0,shape=(56,),dtype = np.float32)
-    else:
+    if self.orig_norm_obs:
       self.observation_space = Box(0.0,1.0,shape=(56*2,),dtype = np.float32)
+    else:
+      self.observation_space = Box(0.0,1.0,shape=(56,),dtype = np.float32)
 
     self.envs = []
     self.idx = np.random.randint(self.num_pgms)
@@ -37,9 +38,10 @@ class HLSMultiEnv(gym.Env):
         env_conf['pgm'] = pgm
         env_conf['pgm_dir'] = path
         env_conf['run_dir'] = 'run_'+pgm.replace(".c","")
-        env_conf['normalize'] = env_config.get('normalize', 0)
+        env_conf['normalize'] = self.norm_obs 
+        env_conf['orig_and_normalize'] = self.orig_norm_obs 
+        env_conf['log_obs_reward']=env_config.get('log_obs_reward',False)
         self.envs.append(HLSEnv(env_conf))
-
 
     if bm_name == "random":
       from gym_hls.envs.random_bm import get_random
@@ -50,7 +52,9 @@ class HLSMultiEnv(gym.Env):
         env_conf['pgm'] = pgm
         env_conf['pgm_files'] = files
         env_conf['run_dir'] = 'run_'+pgm.replace(".c","")
-        env_conf['normalize'] = env_config.get('normalize', 0)
+        env_conf['normalize'] = self.norm_obs 
+        env_conf['orig_and_normalize'] = self.orig_norm_obs 
+        env_conf['log_obs_reward']=env_config.get('log_obs_reward',False)
         self.envs.append(HLSEnv(env_conf))
 
   def reset(self):
@@ -72,7 +76,10 @@ class HLSMultiEnv(gym.Env):
     self.envs[self.idx].render()
 
 def test():
-  env_config = {'normalize': 0, 
+  env_config = {
+    'normalize':False, 
+    'orig_and_normalize':False, 
+    'log_obs_reward':True,
     'verbose':True, 
     'bm_name':'random', 
     'num_pgms':10}

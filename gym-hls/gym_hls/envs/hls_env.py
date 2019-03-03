@@ -9,26 +9,30 @@ import gym
 from gym.spaces import Discrete, Box
 import sys
 from IPython import embed
+import math
 
 class HLSEnv(gym.Env):
   def __init__(self, env_config):
-    self.norm_obs = env_config.get('normalize', 0)
+
+    self.norm_obs = env_config.get('normalize', False)
+    self.orig_norm_obs = env_config.get('orig_and_normalize', False)
 
     self.action_space = Discrete(45)
-    if self.norm_obs != 2:
-      self.observation_space = Box(0.0,1.0,shape=(56,),dtype = np.float32)
-    else:
+    if self.orig_norm_obs:
       self.observation_space = Box(0.0,1.0,shape=(56*2,),dtype = np.float32)
+    else:
+      self.observation_space = Box(0.0,1.0,shape=(56,),dtype = np.float32)
 
     self.prev_cycles = 10000000
     self.verbose = env_config.get('verbose',False)
+    self.log_obs_reward = env_config.get('log_obs_reward',False)
+
     pgm = env_config['pgm']
     pgm_dir = env_config.get('pgm_dir', None)
     pgm_files = env_config.get('pgm_files', None)
     run_dir = env_config.get('run_dir', None)
-    delete_run_dir = env_config.get('delete_run_dir', False)
+    self.delete_run_dir = env_config.get('delete_run_dir', False)
     self.init_with_passes = env_config.get('init_with_passes', False)
-    self.delete_run_dir = delete_run_dir
 
     if run_dir:
       self.run_dir = run_dir+'_p'+str(os.getpid())
@@ -107,15 +111,19 @@ class HLSEnv(gym.Env):
       if get_obs:
         obs = self.get_obs()
 
-      if self.norm_obs != 0:
+      if self.norm_obs or self.orig_norm_obs:
         self.original_obs = [1.0*(x+1) for x in obs]
         relative_obs = len(obs)*[1]
-        if self.norm_obs == 1:
+        if self.norm_obs:
           obs = relative_obs
-        elif self.norm_obs == 2:
+        elif self.orig_norm_obs:
           obs.extend(relative_obs)
         else:
           raise
+
+      if self.log_obs_reward:
+        log_obs = [math.log(e+1) for e in obs]
+        return log_obs
       return obs
     else:
       return 0
@@ -129,12 +137,20 @@ class HLSEnv(gym.Env):
     obs = []
     if get_obs:
       obs = self.get_obs()
-    if self.norm_obs != 0:
+
+    if self.norm_obs or self.orig_norm_obs:
       relative_obs =  [1.0*(x+1)/y for x, y in zip(obs, self.original_obs)]
-      if self.norm_obs == 1:
+      if self.norm_obs:
         obs = relative_obs
-      elif self.norm_obs == 2:
+      elif self.orig_norm_obs:
         obs.extend(relative_obs)
+      else:
+        raise
+
+    if self.log_obs_reward:
+        obs = [math.log(e+1) for e in obs]
+        reward = np.sign(reward) * math.log(abs(reward)+1)
+
     return (obs, reward, done, info)
 
   def multi_steps(self, actions):

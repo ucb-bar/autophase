@@ -5,7 +5,10 @@ from gym_hls.envs.hls_env import HLSEnv
 from gym_hls.envs.hls_multi_env import HLSMultiEnv
 
 ray.init()
-env_config = {'normalize': 1,  
+env_config = {
+    'normalize': False,  
+    'orig_and_normalize':True,
+    'log_obs_reward':False,
     'verbose':True, 
     'bm_name':'random', 
     'num_pgms':100}
