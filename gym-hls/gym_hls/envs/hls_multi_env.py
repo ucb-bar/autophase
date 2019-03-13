@@ -42,8 +42,7 @@ class HLSMultiEnv(gym.Env):
         env_conf['orig_and_normalize'] = self.orig_norm_obs 
         env_conf['log_obs_reward']=env_config.get('log_obs_reward',False)
         self.envs.append(HLSEnv(env_conf))
-
-    if bm_name == "random":
+    elif bm_name == "random":
       from gym_hls.envs.random_bm import get_random
       bms = get_random(N=self.num_pgms)
       for i, bm in enumerate(bms):
@@ -56,6 +55,8 @@ class HLSMultiEnv(gym.Env):
         env_conf['orig_and_normalize'] = self.orig_norm_obs 
         env_conf['log_obs_reward']=env_config.get('log_obs_reward',False)
         self.envs.append(HLSEnv(env_conf))
+    else:
+      raise
 
   def reset(self):
     self.idx = (self.idx + 1)  % self.num_pgms
@@ -85,6 +86,8 @@ def test():
     'num_pgms':10}
   env = HLSMultiEnv(env_config)
   env.reset()
+  cycle = env.envs[0].get_Ox_rewards(level=1)
+  print(cycle)
   print(env.step(1))
 
 

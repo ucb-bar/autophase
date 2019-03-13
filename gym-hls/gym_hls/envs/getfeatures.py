@@ -1,4 +1,4 @@
-import gym_hls.envs.geto3
+import gym_hls.envs.getox
 import gym_hls.envs.getpgm
 import subprocess
 from  subprocess import call
@@ -58,7 +58,7 @@ def main ():
         fout.write(c_code + "\t")
         fout_o3.write(c_code + "\t")
         # Compile the program with -O3
-        geto3.getO3Cycles(c_code) 
+        geto3.getOxCycles(c_code) 
 
         bc_code = c_code + ".prelto.bc" 
         bc_code_o3 = c_code + ".bc"

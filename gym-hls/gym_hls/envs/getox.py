@@ -11,15 +11,20 @@ makefile_str= """
 NAME= test_c_code
 NO_OPT=1
 CUSTOM_OPT=1
-EXTRA_OPT_FLAGS = 
+EXTRA_OPT_FLAGS = test_flag 
 LEVEL = /scratch/qijing.huang/LegUp/legup-4.0/examples
 include $(LEVEL)/Makefile.common
 """
 
-def getO3Cycles(c_code, path, sim=False):
+def getOxCycles(c_code, path, level=3, sim=False):
     #print len(opt_passes)
 
     makefile_new = makefile_str.replace("test_c_code", c_code)
+    if level > 0:
+      makefile_new = makefile_new.replace("test_flag", "-O"+str(level))
+    else:
+      makefile_new = makefile_new.replace("test_flag", "")
+      
 
     # Update the Makefile
     f = open(path + "/Makefile","w")

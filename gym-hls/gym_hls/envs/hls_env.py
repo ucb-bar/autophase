@@ -65,14 +65,13 @@ class HLSEnv(gym.Env):
       if os.path.isdir(self.run_dir):
         shutil.rmtree(self.run_dir)
 
-  def get_O3_rewards(self, sim=False):
-    from gym_hls.envs.geto3 import getO3Cycles
-    cycle = getO3Cycles(self.pgm_name, self.run_dir, sim=sim)
+  def get_Ox_rewards(self, level=3, sim=False):
+    from gym_hls.envs.getox import getOxCycles
+    cycle = getOxCycles(self.pgm_name, self.run_dir, level=level, sim=sim)
     return -cycle
 
   def print_info(self,message, end = '\n'):
         sys.stdout.write('\x1b[1;34m' + message.strip() + '\x1b[0m' + end)
-
 
   def get_rewards(self, diff=True, sim=False):
     cycle, done = getcycle.getHWCycles(self.pgm_name, self.passes, self.run_dir, sim=sim)
@@ -168,7 +167,7 @@ class HLSEnv(gym.Env):
     print("prev_cycles: {}".format(self.prev_cycles))
 
 
-def getO3():
+def getOx():
   import time
   from chstone_bm import get_chstone, get_others
   bm = get_chstone()
