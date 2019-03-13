@@ -10,7 +10,7 @@ from gym.spaces import Discrete, Box
 import sys
 from IPython import embed
 import math
-
+import pickle
 class HLSEnv(gym.Env):
   def __init__(self, env_config):
 
@@ -18,6 +18,7 @@ class HLSEnv(gym.Env):
     self.orig_norm_obs = env_config.get('orig_and_normalize', False)
 
     self.action_space = Discrete(45)
+
     if self.orig_norm_obs:
       self.observation_space = Box(0.0,1.0,shape=(56*2,),dtype = np.float32)
     else:
@@ -42,15 +43,15 @@ class HLSEnv(gym.Env):
 
     cwd = os.getcwd()
     self.run_dir = os.path.join(cwd, self.run_dir)
-    print(self.run_dir) 
+    print(self.run_dir)
     if os.path.isdir(self.run_dir):
       shutil.rmtree(self.run_dir, ignore_errors=True)
-    if pgm_dir: 
+    if pgm_dir:
       shutil.copytree(pgm_dir, self.run_dir)
-    if pgm_files: 
+    if pgm_files:
       os.makedirs(self.run_dir)
       for f in pgm_files:
-        shutil.copy(f, self.run_dir) 
+        shutil.copy(f, self.run_dir)
 
     self.pre_passes_str= "-prune-eh -functionattrs -ipsccp -globalopt -mem2reg -deadargelim -sroa -early-cse -loweratomic -instcombine -loop-simplify"
     self.pre_passes = getcycle.passes2indice(self.pre_passes_str)
@@ -80,6 +81,11 @@ class HLSEnv(gym.Env):
    # print("prev_cycles: {}".format(self.prev_cycles))
     if(self.verbose):
         self.print_info("program: {} -- ".format(self.pgm_name)+" cycle: {}".format(cycle))
+        cyc_dict = {self.pgm_name: cycle}
+        output = open('cycles.pkl', 'ab')
+        pickle.dump(cyc_dict, output)
+        output.close()
+
     if (diff):
       rew = self.prev_cycles - cycle
       self.prev_cycles = cycle
