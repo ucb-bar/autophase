@@ -29,7 +29,7 @@ class HLSMultiEnv(gym.Env):
     self.envs = []
     self.idx = np.random.randint(self.num_pgms)
 
-    if bm_name == "chstone": 
+    if bm_name == "chstone":
       from gym_hls.envs.chstone_bm import get_chstone, get_orig6
       bms = get_orig6()
       for i, bm in enumerate(bms):
@@ -38,8 +38,9 @@ class HLSMultiEnv(gym.Env):
         env_conf['pgm'] = pgm
         env_conf['pgm_dir'] = path
         env_conf['run_dir'] = 'run_'+pgm.replace(".c","")
-        env_conf['normalize'] = self.norm_obs 
-        env_conf['orig_and_normalize'] = self.orig_norm_obs 
+        env_conf['normalize'] = self.norm_obs
+        env_conf['verbose'] = env_config.get('verbose',False)
+        env_conf['orig_and_normalize'] = self.orig_norm_obs
         env_conf['log_obs_reward']=env_config.get('log_obs_reward',False)
         self.envs.append(HLSEnv(env_conf))
     elif bm_name == "random":
@@ -51,8 +52,9 @@ class HLSMultiEnv(gym.Env):
         env_conf['pgm'] = pgm
         env_conf['pgm_files'] = files
         env_conf['run_dir'] = 'run_'+pgm.replace(".c","")
-        env_conf['normalize'] = self.norm_obs 
-        env_conf['orig_and_normalize'] = self.orig_norm_obs 
+        env_conf['normalize'] = self.norm_obs
+        env_conf['verbose'] = env_config.get('verbose',False)
+        env_conf['orig_and_normalize'] = self.orig_norm_obs
         env_conf['log_obs_reward']=env_config.get('log_obs_reward',False)
         self.envs.append(HLSEnv(env_conf))
     else:
@@ -78,11 +80,11 @@ class HLSMultiEnv(gym.Env):
 
 def test():
   env_config = {
-    'normalize':False, 
-    'orig_and_normalize':False, 
+    'normalize':False,
+    'orig_and_normalize':False,
     'log_obs_reward':True,
-    'verbose':True, 
-    'bm_name':'random', 
+    'verbose':True,
+    'bm_name':'random',
     'num_pgms':10}
   env = HLSMultiEnv(env_config)
   env.reset()

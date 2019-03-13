@@ -1,6 +1,7 @@
 from gym_hls.envs.hls_env import HLSEnv
 from gym_hls.envs.hls_multi_env import HLSMultiEnv
 import os
+import pickle
 env_configs = {}
 import argparse
 NumSteps = 12
@@ -10,9 +11,9 @@ parser.add_argument('--steps', '-s', type=int, default=NumSteps)
 args = parser.parse_args()
 
 from gym_hls.envs.random_bm import get_random
-bms = get_random(N=200)
+bms = get_random(N=1000)
 bms = bms[-10:]
-    
+
 needed_config_for_rollout = {}
 for i, bm in enumerate(bms):
    pgm, files = bm
@@ -31,3 +32,10 @@ for i, bm in enumerate(bms):
    print("running ", command)
    print('-'*30)
    os.system(command)
+
+   results = pickle.load(open('cycles.pkl','rb'))
+   with open('results.csv','w') as f:
+      for key in results.keys():
+          f.write("%s,%s\n"%(key,results[key]))
+
+

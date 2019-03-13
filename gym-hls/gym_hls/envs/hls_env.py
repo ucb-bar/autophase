@@ -10,7 +10,7 @@ from gym.spaces import Discrete, Box
 import sys
 from IPython import embed
 import math
-
+import pickle
 class HLSEnv(gym.Env):
   def __init__(self, env_config):
 
@@ -18,6 +18,7 @@ class HLSEnv(gym.Env):
     self.orig_norm_obs = env_config.get('orig_and_normalize', False)
 
     self.action_space = Discrete(45)
+
     if self.orig_norm_obs:
       self.observation_space = Box(0.0,1.0,shape=(56*2,),dtype = np.float32)
     else:
@@ -42,15 +43,15 @@ class HLSEnv(gym.Env):
 
     cwd = os.getcwd()
     self.run_dir = os.path.join(cwd, self.run_dir)
-    print(self.run_dir) 
+    print(self.run_dir)
     if os.path.isdir(self.run_dir):
       shutil.rmtree(self.run_dir, ignore_errors=True)
-    if pgm_dir: 
+    if pgm_dir:
       shutil.copytree(pgm_dir, self.run_dir)
-    if pgm_files: 
+    if pgm_files:
       os.makedirs(self.run_dir)
       for f in pgm_files:
-        shutil.copy(f, self.run_dir) 
+        shutil.copy(f, self.run_dir)
 
     self.pre_passes_str= "-prune-eh -functionattrs -ipsccp -globalopt -mem2reg -deadargelim -sroa -early-cse -loweratomic -instcombine -loop-simplify"
     self.pre_passes = getcycle.passes2indice(self.pre_passes_str)
@@ -79,6 +80,15 @@ class HLSEnv(gym.Env):
    # print("prev_cycles: {}".format(self.prev_cycles))
     if(self.verbose):
         self.print_info("program: {} -- ".format(self.pgm_name)+" cycle: {}".format(cycle))
+        try:
+          cyc_dict = pickle.load(open('cycles.pkl','rb'))
+        except:
+          cyc_dict = {}
+        cyc_dict[self.pgm_name] = cycle
+        output = open('cycles.pkl', 'wb')
+        pickle.dump(cyc_dict, output)
+        output.close()
+
     if (diff):
       rew = self.prev_cycles - cycle
       self.prev_cycles = cycle
@@ -116,13 +126,18 @@ class HLSEnv(gym.Env):
         if self.norm_obs:
           obs = relative_obs
         elif self.orig_norm_obs:
+          obs = list(self.original_obs)
           obs.extend(relative_obs)
         else:
           raise
 
       if self.log_obs_reward:
-        log_obs = [math.log(e+1) for e in obs]
+        if  (self.norm_obs or self.orig_norm_obs):
+            log_obs = [math.log(e) for e in obs]
+        else:
+            log_obs = [math.log(e+1) for e in obs]
         return log_obs
+
       return obs
     else:
       return 0
@@ -142,14 +157,17 @@ class HLSEnv(gym.Env):
       if self.norm_obs:
         obs = relative_obs
       elif self.orig_norm_obs:
+        obs =  [e+1 for e in obs]
         obs.extend(relative_obs)
       else:
         raise
 
     if self.log_obs_reward:
-        obs = [math.log(e+1) for e in obs]
+        if self.norm_obs or self.orig_norm_obs:
+          obs = [math.log(e) for e in obs]
+        else:
+          obs = [math.log(e+1) for e in obs]
         reward = np.sign(reward) * math.log(abs(reward)+1)
-
     return (obs, reward, done, info)
 
   def multi_steps(self, actions):
