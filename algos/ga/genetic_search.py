@@ -20,11 +20,10 @@
 import random
 import re
 import subprocess
-import getcycle
-import getpgm
+from gym_hls.envs import getcycle
 import os
 
-from env import Env
+from gym_hls.envs.hls_env import HLSEnv as Env
 from  subprocess import call
 from multiprocessing.dummy import Pool as ThreadPool
 
@@ -73,7 +72,8 @@ def setupGA(envs, length):
     def evalOneMax(individual):
       #_, reward =env.reset(init=individual, get_obs=False)
       #pool = ThreadPool(len(envs))
-      rews = [env.reset(init=individual, get_obs=False)[1] for env in envs]
+      rews = [env.get_cycles(individual) for env in envs]
+
       #rews = pool.map(lambda env: env.reset(init=individual, get_obs=False)[1], envs)
       reward = -geo_mean(rews)
       
@@ -120,6 +120,7 @@ def trainGA(toolbox):
     #CXPB, MUTPB = 0.5, 0.2
     CXPB, MUTPB = 0.6, 0.3
 
+    sample_size = 0
     print("Start of evolution")
 
     # Evaluate the entire population
@@ -128,6 +129,7 @@ def trainGA(toolbox):
         ind.fitness.values = fit
 
     print("  Evaluated %i individuals" % len(pop))
+    sample_size += len(pop)
 
     # Extracting all the fitnesses of
     fits = [ind.fitness.values[0] for ind in pop]
@@ -176,6 +178,7 @@ def trainGA(toolbox):
             ind.fitness.values = fit
 
         print("  Evaluated %i individuals" % len(invalid_ind))
+        sample_size += len(invalid_ind)
 
         # The population is entirely replaced by the offspring
         pop[:] = offspring
@@ -193,6 +196,7 @@ def trainGA(toolbox):
         print("  Max %s" % max(fits))
         print("  Avg %s" % mean)
         print("  Std %s" % std)
+        print("  Sample Size %d" % sample_size)
         compile_time = end - begin
         print("  Time {}".format(int(compile_time)))
         best_ind = tools.selBest(pop, 1)[0]
@@ -204,50 +208,82 @@ def trainGA(toolbox):
     best_ind = tools.selBest(pop, 1)[0]
     print("Best individual is %s, %s" % (best_ind, best_ind.fitness.values))
     print("Best is {}, {}".format(getcycle.getPasses(best_ind), best_ind.fitness.values))
-    return best_ind.fitness.values, best_ind
+    return best_ind.fitness.values, best_ind, sample_size
 
-def ga_test(length, test_name):
-    #pgms = getpgm.lsFiles("../dataset")
 
-    #from chstone_bm import get_chstone, get_others
-    #bm = get_chstone()[4:5]
-    #bm = [("gsm.c", "/scratch/qijing.huang/LegUp/legup-4.0/examples/chstone/gsm/") ]
-    #print(len(bm))
-    #bm.extend(get_others())
+def ga_test_single_pgm(N=1):
+  test_len = [12]
 
-    #test_len = [6, 12, 24, 48, 96]
-    #test_len = [48, 96]
-    #test_len = [5]
+  fout = open("report_ga"+".txt", "w")
+  fout.write("Benchmark | Cycle Counts | Algorithm Runtime (s)| Sample Sizes | Passes \n")
 
-    fout = open("report_ga"+".txt", "w")
-    fout.write("Benchmark |Cycle Counts | Algorithm Runtime (s)|Passes \n")
 
-    #for pgm, path in bm:
-    for pgm_name in ["greedy"]:
-        from chstone_bm import get_bms
-        #bm = get_chstone(N=4)
-        bm = get_bms(test_name) 
-        envs = []
-        i = 0
-        for pgm, path in bm:
-            envs.append(Env(pgm, path, "run_ga_"+str(i)))
-            i = i+1
+  from gym_hls.envs.chstone_bm import get_all9
+  bms = get_all9() 
+  for bm in bms: 
+    for length in test_len:
+      envs = []
+      i = 0
+      pgm, path  = bm
+      print("Program: {}".format(pgm))
+      env_config = {
+        'pgm':pgm,
+        'pgm_dir':path,
+        'run_dir':'run_'+pgm.replace(".c",""),
+        'normalize':False,
+        'orig_and_normalize':False,
+        'log_obs_reward':False,
+        'verbose':False,
+        }
+      envs.append(Env(env_config))
+      i = i+1
+      toolbox = setupGA(envs, length=length)
+      begin = time.time()
+      cycles, passes, sample_size = trainGA(toolbox)
+      end = time.time()
+      print("Best individuals are: {}".format(passes))
+      print("Cycles: {}".format(cycles[0]))
+      compile_time =end - begin
+      print("Compile Time: %d"%(int(compile_time)))
+      fout.write("{}|{}|{}|{}|{}".format(pgm, cycles[0], compile_time, sample_size, passes))
 
-        #env=Env(pgm, path, init_with_passes=True)  
-        print("Program: %s" % pgm_name)
-        toolbox = setupGA(envs, length=length)
-        begin = time.time()
-        cycles, passes = trainGA(toolbox)
-        end = time.time()
-        compile_time = end - begin
-        print("Compile Time: %d"%(int(compile_time)))
-        fout.write("{}|{}|{}|{}\n".format(pgm, cycles[0], compile_time, passes))
+def ga_test_pgm_group():
+  test_len = [12]
+  for length in test_len:
+    print("Program: {}".format(pgm))
+    #env=Env(pgm, path)  
+    from gym_hls.envs.chstone_bm import get_all9
+    bms = get_all9() 
 
-                 
+    envs = []
+    i = 0
+    for pgm, path in bms:
+      env_config = {
+        'pgm':pgm,
+        'pgm_dir':path,
+        'run_dir':'run_'+pgm.replace(".c",""),
+        'normalize':False,
+        'orig_and_normalize':False,
+        'log_obs_reward':False,
+        'verbose':False,
+        }
+
+      envs.append(Env(env_config))
+      i = i+1
+
+    toolbox = setupGA(envs, length=length)
+    begin = time.time()
+    cycles, passes, sample_size = trainGA(toolbox)
+    end = time.time()
+    print("Best individuals are: {}".format(passes))
+    print("Cycles: {}".format(cycles[0]))
+    compile_time =end - begin
+    print("Compile Time: %d"%(int(compile_time)))
+    fout.write("{}|{}|{}|{}|{}".format("get_all9", cycles[0], compile_time, sample_size, passes))
+
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--benchmark', '-bm', type=str, default=" ")
-    parser.add_argument('--length', '-len', type=int, default=3)
-    args = parser.parse_args()
-    ga_test(args.length, args.benchmark)
+    #parser = argparse.ArgumentParser()
+    #parser.add_argument('--benchmark', '-bm', type=str, default=" ")
+    #parser.add_argument('--length', '-len', type=int, default=3)
+    #args = parser.parse_args()
+    ga_test_single_pgm()
