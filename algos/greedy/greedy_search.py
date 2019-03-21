@@ -1,6 +1,6 @@
 import time
-import getcycle
-from env import Env
+from gym_hls.envs import getcycle
+from gym_hls.envs.hls_env import HLSEnv as Env
 from multiprocessing.pool import ThreadPool
 import sys, os
 import pickle
@@ -18,23 +18,23 @@ NUM_PASSES = 45
 def runInsertionN(envs, N, length = 10000):
   #env = Env(pgm)  
   pool = ThreadPool(len(envs))
-
+  sample_size = 0
   top_passes = [[] for idx in range(N)]
   top_timings = [10000000.0 for idx in range(N)]
 
   i = 0 # Walk through the pass pool 3 times 
   j = 0 # If the top performance is not changing, just iterate thru the pass pool 1 more time
   pass_len = 0
-# Foreach pass we insert it to existing passes 
+
+  # Foreach pass we insert it to existing passes 
   all_passes = getcycle.qw(getcycle.opt_passes_str)
   all_passes = all_passes[0:NUM_PASSES]
   total_passes = len(all_passes)
   print("total_passes_len: {}".format(total_passes))
 
   #while (i < total_passes * 3 and j < total_passes and pass_len < length): 
-
   begin = time.time()
-  while ( pass_len < length): 
+  while (pass_len < length): 
     async_result = []
     pass_record = []
     time_record = []
@@ -44,9 +44,10 @@ def runInsertionN(envs, N, length = 10000):
     #cur_pass = i % total_passes
     for k in range(N):
       for cur_pass in range(total_passes):
-        (passes, wall_time) = runInsertion(envs, top_passes[k], cur_pass, pool)
+        (passes, wall_time, sample_count) = runInsertion(envs, top_passes[k], cur_pass, pool)
         pass_record.extend(passes)
         time_record.extend(wall_time)
+        sample_size += sample_count 
 
 # Multi processes implementation
 # for j in range(N):
@@ -59,6 +60,7 @@ def runInsertionN(envs, N, length = 10000):
 
     print("pass_record: {}".format(pass_record))
     print("pass_timing: {}".format(time_record))
+    print("sample_size: {}".format(sample_size))
     np_time_record = np.array(time_record)
     indices = np_time_record.argsort().flatten()[:N]
 
@@ -86,89 +88,94 @@ def runInsertionN(envs, N, length = 10000):
     #if i % total_passes== 0:
     #  walk = i / total_passes
     #  print("Round %d start"%walk)
-  return (top_passes, top_timings)
+  return (top_passes, top_timings, sample_size)
 
 def runInsertion(envs, cur_passes, new_pass, pool):
   pass_record = []
   time_record = []
+  sample_count = 0 
   for j in range(len(cur_passes)+ 1):
     test_passes = np.insert(cur_passes, j, new_pass).astype(int).tolist()
     #print('Test passes: {}.'.format(test_passes))
     #_, reward = env.reset(init=test_passes)
-    rews = pool.map(lambda env: env.reset(init=test_passes, get_obs=False)[1], envs)
-    #print(rews)
+    rews = pool.map(lambda env: env.get_cycles(test_passes), envs)
+    sample_count += len(envs) 
     reward = -geo_mean(rews)
 
     wall_time = -reward
     pass_record.append(test_passes)
     time_record.append(wall_time)
-  return (pass_record, time_record)
+  return (pass_record, time_record, sample_count)
 
-def in1_test():
-
-  from chstone_bm import get_chstone, get_others
-  bm = get_chstone()
-  bm.extend(get_others())
-  test_len = [6, 12, 24, 48, 96]
-
-  fout = open("report_in1.txt", "w")
-  fout.write("Benchmark |Cycle Counts | Algorithm Runtime (s)|Passes \n")
-
-  for pgm, path in bm:
-    for length in test_len:
-
-      begin = time.time()
-      print("Program: {}".format(pgm))
-      env=Env(pgm, path)  
-
-      (passes, timings) = runInsertionN(env, 1, length=length)
-      #pickle.dump(record, lb_file)
-      print("Best individuals are: {}".format(passes[0]))
-      print(timings)
-      print("Cycles: {}".format(timings[0]))
-      end = time.time()
-      compile_time =end - begin
-      print("Compile Time: %d"%(int(compile_time)))
-    fout.write("{}|{}|{}|{}".format(pgm, timings[0], compile_time, passes[0]))
-
-def in_test(N=1):
-
-  #from chstone_bm import get_chstone, get_others
-  #bm = get_chstone()
-  #bm.extend(get_others())
-  #test_len = [6, 12, 24, 48, 96]
+def in_test_single_pgm(N=1):
   test_len = [12]
-
   fout = open("report_in_12.txt", "w")
-  fout.write("Benchmark |Cycle Counts | Algorithm Runtime (s)|Passes \n")
+  fout.write("Benchmark | Cycle Counts | Algorithm Runtime (s)| Sample Sizes | Passes \n")
 
-  #for pgm, path in bm:
-  for pgm in ["in"+str(N)+"_6progs"]:
+  from gym_hls.envs.chstone_bm import get_all9
+  bms = get_all9() 
+  for bm in bms: 
     for length in test_len:
-
-      begin = time.time()
-      print("Program: {}".format(pgm))
-      #env=Env(pgm, path)  
-      from chstone_bm import get_bms
-      bm = get_bms("orig6")
-
       envs = []
       i = 0
-      for pg, path in bm:
-          envs.append(Env(pg, path, "run_in_"+str(i)))
-          i = i+1
-
-      (passes, timings) = runInsertionN(envs, 1, length=length)
-      #pickle.dump(record, lb_file)
-      print("Best individuals are: {}".format(passes[0]))
-      print(timings)
-      print("Cycles: {}".format(timings[0]))
+      pgm, path  = bm
+      print("Program: {}".format(pgm))
+      env_config = {
+        'pgm':pgm,
+        'pgm_dir':path,
+        'run_dir':'run_'+pgm.replace(".c",""),
+        'normalize':False,
+        'orig_and_normalize':False,
+        'log_obs_reward':False,
+        'verbose':False,
+        }
+      envs.append(Env(env_config))
+      i = i+1
+      begin = time.time()
+      (passes, timings, sample_size) = runInsertionN(envs, N, length=length)
       end = time.time()
+      print("Best individuals are: {}".format(passes[0]))
+      print("Cycles: {}".format(timings[0]))
       compile_time =end - begin
       print("Compile Time: %d"%(int(compile_time)))
-    fout.write("{}|{}|{}|{}".format(pgm, timings[0], compile_time, passes[0]))
+      fout.write("{}|{}|{}|{}|{}".format(pgm, timings[0], compile_time, sample_size, passes[0]))
+
+def in_test_pgm_group(N=1):
+  test_len = [12]
+  for length in test_len:
+    print("Program: {}".format(pgm))
+    #env=Env(pgm, path)  
+    from gym_hls.envs.chstone_bm import get_all9
+    bms = get_all9() 
+
+    envs = []
+    i = 0
+    for pgm, path in bms:
+      env_config = {
+        'pgm':pgm,
+        'pgm_dir':path,
+        'run_dir':'run_'+pgm.replace(".c",""),
+        'normalize':False,
+        'orig_and_normalize':False,
+        'log_obs_reward':False,
+        'verbose':False,
+        }
+
+      envs.append(Env(env_config))
+      i = i+1
+
+    begin = time.time()
+    (passes, timings, sample_size) = runInsertionN(envs, N, length=length)
+    end = time.time()
+    #pickle.dump(record, lb_file)
+    print("Best individuals are: {}".format(passes[0]))
+    print("Cycles: {}".format(timings[0]))
+    compile_time =end - begin
+    print("Compile Time: %d"%(int(compile_time)))
+    fout.write("{}|{}|{}|{}|{}".format("get_all9", timings[0], compile_time, sample_size, passes[0]))
+
 
 
 if __name__== "__main__":
-  in_test()
+  in_test_single_pgm()
 
