@@ -10,12 +10,14 @@ def getbaseline(bm_name='chstone', num_pgms=None):
     bms = get_random(N=num_pgms)
   else:
     raise
+  print(len(bms))
+  bms = bms[16540:]
+  
 
   fout = open("report_baseline"+".txt", "w")
   fout.write("Benchmark|-O0|-O3|-O0 Runtime(s)|-O3 Runtime(s)\n")
 
   for bm in bms:
-
     if bm_name == "chstone": 
       pgm, path = bm
       env_conf = {}
@@ -33,17 +35,25 @@ def getbaseline(bm_name='chstone', num_pgms=None):
     
     env = HLSEnv(env_conf)
 
-    begin = time.time()
-    o0_cycle = - env.get_Ox_rewards(level=0)
-    end = time.time()
-    o0_compile_time = end - begin
+    try:
+      begin = time.time()
+      o0_cycle = - env.get_Ox_rewards(level=0)
+      end = time.time()
+      o0_compile_time = end - begin
 
+      begin = time.time()
+      o3_cycle = - env.get_Ox_rewards(level=3)
+      end = time.time()
+      o3_compile_time = end - begin
+      env.__del__()
+      fout.write("{}|{}|{}|{}|{}\n".format(pgm, o0_cycle, o3_cycle, o0_compile_time, o3_compile_time))
+      print("{}|{}|{}|{}|{}\n".format(pgm, o0_cycle, o3_cycle, o0_compile_time, o3_compile_time))
+    finally:
+      env.__del__()
+      del env
+      import os
+      os.system("rm -rf run_*")
 
-    begin = time.time()
-    o3_cycle = - env.get_Ox_rewards(level=3)
-    end = time.time()
-    o3_compile_time = end - begin
-    fout.write("{}|{}|{}|{}\n".format(pgm, o0_cycle, o3_cycle, o0_compile_time, o3_compile_time))
-
+  fout.close()
 
 getbaseline('random')
