@@ -62,7 +62,6 @@ def get_orig4():
   print(bm)
   return bm
 
-
 def get_orig6():
   bm = list (get_chstone()[i] for i in [0, 1, 2, 7, 10, 11])
   print(bm)
@@ -72,6 +71,15 @@ def get_ot6():
   bm = list (get_chstone()[i] for i in [3, 8])
   ot = list (get_others()[i] for i in [0, 1, 2, 3])
   bm.extend(ot)
+  print(bm)
+  return bm
+
+def get_all9():
+  bm = list (get_chstone()[i] for i in [0, 1, 2, 7, 10, 11])
+  ot = list (get_others()[i] for i in [1, 2, 3])
+  bm.extend(ot)
+  bm.sort(key=lambda x: x[0])
+  print("get_all9 with %d programs"%len(bm))
   print(bm)
   return bm
 
@@ -96,3 +104,5 @@ def get_bms(test_name):
   else:
     raise Exception("Please specify a benchmark!")
 
+if __name__ == "__main__":
+  get_all9()
