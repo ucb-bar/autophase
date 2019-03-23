@@ -11,19 +11,26 @@ import sys
 from IPython import embed
 import math
 import pickle
+
 class HLSEnv(gym.Env):
   def __init__(self, env_config):
 
     self.norm_obs = env_config.get('normalize', False)
     self.orig_norm_obs = env_config.get('orig_and_normalize', False)
+    self.feature_type = env_config.get('feature_type', 'pgm') # pmg or act_hist
+    self.act_hist = [0] * 45
 
     self.action_space = Discrete(45)
-
-    if self.orig_norm_obs:
-      self.observation_space = Box(0.0,1.0,shape=(56*2,),dtype = np.float32)
+    if self.feature_type == 'pgm':
+      if self.orig_norm_obs:
+        self.observation_space = Box(0.0,1.0,shape=(56*2,),dtype = np.float32)
+      else:
+        self.observation_space = Box(0.0,1.0,shape=(56,),dtype = np.float32)
+    elif self.feature_type == 'act_hist':
+      self.observation_space = Box(0.0,1.0,shape=(45,),dtype = np.float32)
     else:
-      self.observation_space = Box(0.0,1.0,shape=(56,),dtype = np.float32)
-
+      raise
+      
     self.prev_cycles = 10000000
     self.verbose = env_config.get('verbose',False)
     self.log_obs_reward = env_config.get('log_obs_reward',False)
@@ -74,6 +81,10 @@ class HLSEnv(gym.Env):
   def print_info(self,message, end = '\n'):
         sys.stdout.write('\x1b[1;34m' + message.strip() + '\x1b[0m' + end)
 
+  def get_cycles(self, passes, sim=False):
+    cycle, _ = getcycle.getHWCycles(self.pgm_name, passes, self.run_dir, sim=sim)
+    return cycle
+ 
   def get_rewards(self, diff=True, sim=False):
     cycle, done = getcycle.getHWCycles(self.pgm_name, self.passes, self.run_dir, sim=sim)
    # print("pass: {}".format(self.passes))
@@ -103,7 +114,7 @@ class HLSEnv(gym.Env):
 
   # reset() resets passes to []
   # reset(init=[1,2,3]) resets passes to [1,2,3]
-  def reset(self, init=None,get_obs=True, ret=True, sim=False):
+  def reset(self, init=None, get_obs=True, get_rew=False, ret=True, sim=False):
     self.prev_cycles, _ = getcycle.getHWCycles(self.pgm_name, self.passes, self.run_dir, sim=sim)
     self.passes = []
     if(self.verbose):
@@ -115,30 +126,41 @@ class HLSEnv(gym.Env):
       self.passes.extend(init)
 
     if ret:
-      reward, _ = self.get_rewards(sim=sim)
+      if get_rew:
+        reward, _ = self.get_rewards(sim=sim)
       obs = []
       if get_obs:
-        obs = self.get_obs()
+        if self.feature_type == 'pgm':
+          obs = self.get_obs()
 
-      if self.norm_obs or self.orig_norm_obs:
-        self.original_obs = [1.0*(x+1) for x in obs]
-        relative_obs = len(obs)*[1]
-        if self.norm_obs:
-          obs = relative_obs
-        elif self.orig_norm_obs:
-          obs = list(self.original_obs)
-          obs.extend(relative_obs)
+          if self.norm_obs or self.orig_norm_obs:
+            self.original_obs = [1.0*(x+1) for x in obs]
+            relative_obs = len(obs)*[1]
+            if self.norm_obs:
+              obs = relative_obs
+            elif self.orig_norm_obs:
+              obs = list(self.original_obs)
+              obs.extend(relative_obs)
+            else:
+              raise
+          if self.log_obs_reward:
+            if  (self.norm_obs or self.orig_norm_obs):
+                log_obs = [math.log(e) for e in obs]
+            else:
+                log_obs = [math.log(e+1) for e in obs]
+          obs = log_obs
+
+        elif self.feature_type == 'act_hist':
+          obs = self.act_hist
         else:
-          raise
+          raise 
 
-      if self.log_obs_reward:
-        if  (self.norm_obs or self.orig_norm_obs):
-            log_obs = [math.log(e) for e in obs]
-        else:
-            log_obs = [math.log(e+1) for e in obs]
-        return log_obs
-
-      return obs
+      if get_rew and not get_obs:
+        return reward 
+      if get_obs and not get_rew:
+        return obs
+      if get_obs and get_rew:
+        return (obs, reward)
     else:
       return 0
 
@@ -150,24 +172,31 @@ class HLSEnv(gym.Env):
     reward, done = self.get_rewards()
     obs = []
     if get_obs:
-      obs = self.get_obs()
 
-    if self.norm_obs or self.orig_norm_obs:
-      relative_obs =  [1.0*(x+1)/y for x, y in zip(obs, self.original_obs)]
-      if self.norm_obs:
-        obs = relative_obs
-      elif self.orig_norm_obs:
-        obs =  [e+1 for e in obs]
-        obs.extend(relative_obs)
-      else:
-        raise
+      if self.feature_type == 'pgm':
 
-    if self.log_obs_reward:
+        obs = self.get_obs()
         if self.norm_obs or self.orig_norm_obs:
-          obs = [math.log(e) for e in obs]
-        else:
-          obs = [math.log(e+1) for e in obs]
-        reward = np.sign(reward) * math.log(abs(reward)+1)
+          relative_obs =  [1.0*(x+1)/y for x, y in zip(obs, self.original_obs)]
+          if self.norm_obs:
+            obs = relative_obs
+          elif self.orig_norm_obs:
+            obs =  [e+1 for e in obs]
+            obs.extend(relative_obs)
+          else:
+            raise
+
+        if self.log_obs_reward:
+            if self.norm_obs or self.orig_norm_obs:
+              obs = [math.log(e) for e in obs]
+            else:
+              obs = [math.log(e+1) for e in obs]
+
+      elif self.feature_type == 'act_hist':
+        self.act_hist[action] += 1
+        obs = self.act_hist
+
+    reward = np.sign(reward) * math.log(abs(reward)+1)
     return (obs, reward, done, info)
 
   def multi_steps(self, actions):
