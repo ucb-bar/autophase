@@ -90,7 +90,8 @@ class HLSEnv(gym.Env):
    # print("pass: {}".format(self.passes))
    # print("prev_cycles: {}".format(self.prev_cycles))
     if(self.verbose):
-        self.print_info("program: {} -- ".format(self.pgm_name)+" cycle: {}".format(cycle))
+        self.print_info("passes: {}".format(self.passes))
+        self.print_info("program: {} -- ".format(self.pgm_name)+" cycle: {}  -- prev_cycles: {}".format(cycle, self.prev_cycles))
         try:
           cyc_dict = pickle.load(open('cycles.pkl','rb'))
         except:
@@ -151,6 +152,7 @@ class HLSEnv(gym.Env):
           obs = log_obs
 
         elif self.feature_type == 'act_hist':
+          self.act_hist = [0] * 45
           obs = self.act_hist
         else:
           raise 
@@ -166,11 +168,14 @@ class HLSEnv(gym.Env):
 
   def step(self, action, get_obs=True):
     info = {}
-    if(self.verbose):
-        self.print_info("program: {} --".format(self.pgm_name) + " action: {}".format(action))
     self.passes.append(action)
     reward, done = self.get_rewards()
     obs = []
+    if(self.verbose):
+        self.print_info("program: {} --".format(self.pgm_name) + " action: {}".format(action))
+        self.print_info("reward: {} -- done: {}".format(reward, done))
+        self.print_info("act_hist: {}".format(self.act_hist))
+
     if get_obs:
 
       if self.feature_type == 'pgm':
