@@ -2,18 +2,15 @@ from gym_hls.envs.hls_env import HLSEnv
 def getbaseline(bm_name='chstone', num_pgms=None):
   import time
   if bm_name == "chstone": 
-    from chstone_bm import get_chstone, get_others
-    bms = get_chstone()
-    bms.extend(get_others())
+    from chstone_bm import get_chstone, get_others, get_all9
+    bms = get_all9()
   elif bm_name == "random":
     from gym_hls.envs.random_bm import get_random
     bms = get_random(N=num_pgms)
   else:
     raise
   print(len(bms))
-  bms = bms[16540:]
   
-
   fout = open("report_baseline"+".txt", "w")
   fout.write("Benchmark|-O0|-O3|-O0 Runtime(s)|-O3 Runtime(s)\n")
 
@@ -56,4 +53,5 @@ def getbaseline(bm_name='chstone', num_pgms=None):
 
   fout.close()
 
-getbaseline('random')
+#getbaseline('random')
+#getbaseline('chstone')
