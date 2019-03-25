@@ -27,6 +27,8 @@ for i, bm in enumerate(bms):
           "config": {
 
       # === Model ===
+      "horizon" : 12,
+      "n_step": 3,
       # Number of atoms for representing the distribution of return. When
       # this is greater than 1, distributional Q-learning is used.
       # the discrete supports are bounded by v_min and v_max
@@ -59,14 +61,14 @@ for i, bm in enumerate(bms):
       # exploration_fraction
       "schedule_max_timesteps": 1000,
       # Number of env steps to optimize for before returning
-      "timesteps_per_iteration": 10,
+      "timesteps_per_iteration": 4,
       # Fraction of entire training period over which the exploration rate is
       # annealed
       "exploration_fraction": 0.1,
       # Final value of random action probability
       "exploration_final_eps": 0.02,
       # Update the target network every `target_network_update_freq` steps.
-      "target_network_update_freq": 500,
+      "target_network_update_freq": 10,
       # Use softmax for sampling actions.
       #"soft_q": False,
       # Softmax temperature. Q values are divided by this value prior to softmax.
