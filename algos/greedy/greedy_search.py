@@ -12,10 +12,21 @@ def geo_mean(iterable):
     prod = -prod if prod < 0 else prod
     return prod**(1.0/len(a))
 
+   
 NUM_PASSES = 45
 
+
+def get_lookup_rank(envs): 
+  cycles = np.zeros(NUM_PASSES)
+  for env in envs: 
+    for i in range(NUM_PASSES):
+      cycle = env.get_cycles([i])
+      cycles[i] += cycle
+  print(cycles)
+  return np.argsort(cycles)
+
 # Take top N tested passes to run the insertion for the new pass 
-def runInsertionN(envs, N, length = 10000):
+def runInsertionN(envs, N, length = 10000, sort=False):
   #env = Env(pgm)  
   pool = ThreadPool(len(envs))
   sample_size = 0
@@ -25,7 +36,12 @@ def runInsertionN(envs, N, length = 10000):
   i = 0 # Walk through the pass pool 3 times 
   j = 0 # If the top performance is not changing, just iterate thru the pass pool 1 more time
   pass_len = 0
-
+  if sort:
+    ranked_pass_indices = get_lookup_rank(envs)
+  else:
+    ranked_pass_indices = np.arange(NUM_PASSES) 
+  
+  print(ranked_pass_indices) 
   # Foreach pass we insert it to existing passes 
   all_passes = getcycle.qw(getcycle.opt_passes_str)
   all_passes = all_passes[0:NUM_PASSES]
@@ -44,7 +60,7 @@ def runInsertionN(envs, N, length = 10000):
     #cur_pass = i % total_passes
     for k in range(N):
       for cur_pass in range(total_passes):
-        (passes, wall_time, sample_count) = runInsertion(envs, top_passes[k], cur_pass, pool)
+        (passes, wall_time, sample_count) = runInsertion(envs, top_passes[k], cur_pass, pool, ranked_pass_indices)
         pass_record.extend(passes)
         time_record.extend(wall_time)
         sample_size += sample_count 
@@ -90,12 +106,13 @@ def runInsertionN(envs, N, length = 10000):
     #  print("Round %d start"%walk)
   return (top_passes, top_timings, sample_size)
 
-def runInsertion(envs, cur_passes, new_pass, pool):
+def runInsertion(envs, cur_passes, new_pass, pool, indices):
   pass_record = []
   time_record = []
   sample_count = 0 
   for j in range(len(cur_passes)+ 1):
     test_passes = np.insert(cur_passes, j, new_pass).astype(int).tolist()
+    test_passes = np.take(indices, test_passes)
     #print('Test passes: {}.'.format(test_passes))
     #_, reward = env.reset(init=test_passes)
     rews = pool.map(lambda env: env.get_cycles(test_passes), envs)
@@ -132,7 +149,7 @@ def in_test_single_pgm(N=1):
       envs.append(Env(env_config))
       i = i+1
       begin = time.time()
-      (passes, timings, sample_size) = runInsertionN(envs, N, length=length)
+      (passes, timings, sample_size) = runInsertionN(envs, N, length=length, sort=True)
       end = time.time()
       print("Best individuals are: {}".format(passes[0]))
       print("Cycles: {}".format(timings[0]))
@@ -172,7 +189,7 @@ def in_test_pgm_group(N=1):
     print("Cycles: {}".format(timings[0]))
     compile_time =end - begin
     print("Compile Time: %d"%(int(compile_time)))
-    fout.write("{}|{}|{}|{}|{}".format("get_all9", timings[0], compile_time, sample_size, passes[0]))
+    fout.write("{}|{}|{}|{}|{}\n".format("get_all9", timings[0], compile_time, sample_size, passes[0]))
 
 
 

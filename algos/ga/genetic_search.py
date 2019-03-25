@@ -279,7 +279,7 @@ def ga_test_pgm_group():
     print("Cycles: {}".format(cycles[0]))
     compile_time =end - begin
     print("Compile Time: %d"%(int(compile_time)))
-    fout.write("{}|{}|{}|{}|{}".format("get_all9", cycles[0], compile_time, sample_size, passes))
+    fout.write("{}|{}|{}|{}|{}\n".format("get_all9", cycles[0], compile_time, sample_size, passes))
 
 if __name__ == "__main__":
     #parser = argparse.ArgumentParser()
