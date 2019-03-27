@@ -11,23 +11,36 @@ import sys
 from IPython import embed
 import math
 import pickle
+
 class HLSEnv(gym.Env):
   def __init__(self, env_config):
 
     self.norm_obs = env_config.get('normalize', False)
     self.orig_norm_obs = env_config.get('orig_and_normalize', False)
+    self.feature_type = env_config.get('feature_type', 'pgm') # pmg or act_hist
+    self.act_hist = [0] * 45
     self.bandit = env_config.get('bandit', False)
     if self.bandit:
         self.action_space = Tuple([Discrete(45)]*12)
     else:
         self.action_space = Discrete(45)
-    if self.orig_norm_obs:
-      self.observation_space = Box(0.0,1.0,shape=(56*2,),dtype = np.float32)
+
+    if self.feature_type == 'pgm':
+      if self.orig_norm_obs:
+        self.observation_space = Box(0.0,1.0,shape=(56*2,),dtype = np.float32)
+      else:
+        self.observation_space = Box(0.0,1.0,shape=(56,),dtype = np.float32)
+    elif self.feature_type == 'act_hist':
+      self.observation_space = Box(0.0,1.0,shape=(45,),dtype = np.float32)
+    elif self.bandit:
+      self.observation_space = Box(0.0,1.0,shape=(12,),dtype = np.float32)
+
     else:
-      self.observation_space = Box(0.0,1.0,shape=(56,),dtype = np.float32)
-      if self.bandit:
-        self.observation_space = Box(0.0,1.0,shape=(12,),dtype = np.float32)
+      raise
+
     self.prev_cycles = 10000000
+    self.prev_obs = None
+    self.min_cycles = 10000000
     self.verbose = env_config.get('verbose',False)
     self.log_obs_reward = env_config.get('log_obs_reward',False)
 
@@ -37,12 +50,16 @@ class HLSEnv(gym.Env):
     run_dir = env_config.get('run_dir', None)
     self.delete_run_dir = env_config.get('delete_run_dir', False)
     self.init_with_passes = env_config.get('init_with_passes', False)
+    self.log_results = env_config.get('log_results', False)
 
     if run_dir:
       self.run_dir = run_dir+'_p'+str(os.getpid())
     else:
       currentDT = datetime.datetime.now()
       self.run_dir ="run-"+currentDT.strftime("%Y-%m-%d-%H-%M-%S-%f")+'_p'+str(os.getpid())
+
+    if self.log_results:
+      self.log_file = open(self.run_dir+".log","w")
 
     cwd = os.getcwd()
     self.run_dir = os.path.join(cwd, self.run_dir)
@@ -66,6 +83,8 @@ class HLSEnv(gym.Env):
 
   def __del__(self):
     if self.delete_run_dir:
+      if self.log_results:
+        self.log_file.close()
       if os.path.isdir(self.run_dir):
         shutil.rmtree(self.run_dir)
 
@@ -77,12 +96,17 @@ class HLSEnv(gym.Env):
   def print_info(self,message, end = '\n'):
         sys.stdout.write('\x1b[1;34m' + message.strip() + '\x1b[0m' + end)
 
+  def get_cycles(self, passes, sim=False):
+    cycle, _ = getcycle.getHWCycles(self.pgm_name, passes, self.run_dir, sim=sim)
+    return cycle
+
   def get_rewards(self, diff=True, sim=False):
     cycle, done = getcycle.getHWCycles(self.pgm_name, self.passes, self.run_dir, sim=sim)
    # print("pass: {}".format(self.passes))
    # print("prev_cycles: {}".format(self.prev_cycles))
     if(self.verbose):
-        self.print_info("program: {} -- ".format(self.pgm_name)+" cycle: {}".format(cycle))
+        self.print_info("passes: {}".format(self.passes))
+        self.print_info("program: {} -- ".format(self.pgm_name)+" cycle: {}  -- prev_cycles: {}".format(cycle, self.prev_cycles))
         try:
           cyc_dict = pickle.load(open('cycles2.pkl','rb'))
         except:
@@ -92,6 +116,8 @@ class HLSEnv(gym.Env):
         pickle.dump(cyc_dict, output)
         output.close()
 
+    if (cycle < self.min_cycles):
+      self.min_cycles = cycle
     if (diff):
       rew = self.prev_cycles - cycle
       self.prev_cycles = cycle
@@ -106,7 +132,8 @@ class HLSEnv(gym.Env):
 
   # reset() resets passes to []
   # reset(init=[1,2,3]) resets passes to [1,2,3]
-  def reset(self, init=None,get_obs=True, ret=True, sim=False):
+  def reset(self, init=None, get_obs=True, get_rew=False, ret=True, sim=False):
+    self.min_cycles = 10000000
     self.prev_cycles, _ = getcycle.getHWCycles(self.pgm_name, self.passes, self.run_dir, sim=sim)
     self.passes = []
     if(self.verbose):
@@ -118,68 +145,94 @@ class HLSEnv(gym.Env):
       self.passes.extend(init)
 
     if ret:
-      reward, _ = self.get_rewards(sim=sim)
+      if get_rew:
+        reward, _ = self.get_rewards(sim=sim)
       obs = []
       if get_obs:
-        obs = self.get_obs()
+        if self.feature_type == 'pgm':
+          obs = self.get_obs()
 
-      if self.norm_obs or self.orig_norm_obs:
-        self.original_obs = [1.0*(x+1) for x in obs]
-        relative_obs = len(obs)*[1]
-        if self.norm_obs:
-          obs = relative_obs
-        elif self.orig_norm_obs:
-          obs = list(self.original_obs)
-          obs.extend(relative_obs)
+          if self.norm_obs or self.orig_norm_obs:
+            self.original_obs = [1.0*(x+1) for x in obs]
+            relative_obs = len(obs)*[1]
+            if self.norm_obs:
+              obs = relative_obs
+            elif self.orig_norm_obs:
+              obs = list(self.original_obs)
+              obs.extend(relative_obs)
+            else:
+              raise
+          if self.log_obs_reward:
+            if  (self.norm_obs or self.orig_norm_obs):
+                log_obs = [math.log(e) for e in obs]
+            else:
+                log_obs = [math.log(e+1) for e in obs]
+            obs = log_obs
+
+        elif self.feature_type == 'act_hist':
+          self.act_hist = [0] * 45
+          obs = self.act_hist
+        elif self.bandit:
+          obs = [1] * 12
         else:
           raise
 
-      if self.log_obs_reward:
-        if  (self.norm_obs or self.orig_norm_obs):
-            log_obs = [math.log(e) for e in obs]
-        else:
-            log_obs = [math.log(e+1) for e in obs]
-        return log_obs
-      if self.bandit:
-          obs = [1] * 12
-      print(obs)
-      return obs
+        if self.log_results:
+          self.prev_obs = obs
+
+      if get_rew and not get_obs:
+        return reward
+      if get_obs and not get_rew:
+        return obs
+      if get_obs and get_rew:
+        return (obs, reward)
     else:
       return 0
 
   def step(self, action, get_obs=True):
     info = {}
-    if(self.verbose):
-        self.print_info("program: {} --".format(self.pgm_name) + " action: {}".format(action))
     if self.bandit:
         self.passes = action
     else:
         self.passes.append(action)
+
     reward, done = self.get_rewards()
     obs = []
+    if(self.verbose):
+        self.print_info("program: {} --".format(self.pgm_name) + " action: {}".format(action))
+        self.print_info("reward: {} -- done: {}".format(reward, done))
+        self.print_info("act_hist: {}".format(self.act_hist))
+
     if get_obs:
-      obs = self.get_obs()
 
-    if self.norm_obs or self.orig_norm_obs:
-      relative_obs =  [1.0*(x+1)/y for x, y in zip(obs, self.original_obs)]
-      if self.norm_obs:
-        obs = relative_obs
-      elif self.orig_norm_obs:
-        obs =  [e+1 for e in obs]
-        obs.extend(relative_obs)
-      else:
-        raise
-
-    if self.log_obs_reward:
+      if self.feature_type == 'pgm':
+        obs = self.get_obs()
         if self.norm_obs or self.orig_norm_obs:
-          obs = [math.log(e) for e in obs]
-        else:
-          obs = [math.log(e+1) for e in obs]
-        reward = np.sign(reward) * math.log(abs(reward)+1)
-    if self.bandit:
+          relative_obs =  [1.0*(x+1)/y for x, y in zip(obs, self.original_obs)]
+          if self.norm_obs:
+            obs = relative_obs
+          elif self.orig_norm_obs:
+            obs =  [e+1 for e in obs]
+            obs.extend(relative_obs)
+          else:
+            raise
+
+        if self.log_obs_reward:
+          if self.norm_obs or self.orig_norm_obs:
+            obs = [math.log(e) for e in obs]
+          else:
+            obs = [math.log(e+1) for e in obs]
+          reward = np.sign(reward) * math.log(abs(reward)+1)
+
+      elif self.feature_type == 'act_hist':
+        self.act_hist[action] += 1
+        obs = self.act_hist
+      elif self.bandit:
         obs = self.passes
-    #print(obs)
-    #print(reward)
+
+    if self.log_results:
+      self.log_file.write("{}, {}, {}, {}, {}\n".format(self.prev_obs, action, reward, self.prev_cycles, self.min_cycles))
+      self.prev_obs = obs
     return (obs, reward, done, info)
 
   def multi_steps(self, actions):
