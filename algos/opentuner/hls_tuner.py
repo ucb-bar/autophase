@@ -14,6 +14,7 @@ from opentuner import MeasurementInterface
 from opentuner import Result
 from gym_hls.envs.hls_env import HLSEnv
 
+import pickle
 
 class GccFlagsTuner(MeasurementInterface):
   def __init__(self, configs, *pargs, **kwargs):
@@ -59,7 +60,7 @@ class GccFlagsTuner(MeasurementInterface):
     for index in order:
       if cfg['hls_pass_{}'.format(index)]:  
         passes.append(index)
-    #print(passes)
+    print(passes)
     return self.call_program(passes)
   
   def run_precompiled(self, desired_result, input, limit, compile_result, id):
@@ -90,9 +91,9 @@ class GccFlagsTuner(MeasurementInterface):
   def save_final_config(self, configuration):
     """called at the end of tuning"""
     print("Optimal block size written to json file:", configuration.data)
-    self.manipulator().save_to_file(configuration.data,
-                                    '{}.json'.format(self.configs['pgm'].replace(".c","")))
-
+    #self.manipulator().save_to_file(configuration.data,
+    #                                '{}.json'.format(self.configs['pgm'].replace(".c","")))
+    print(configuration.data)
   
 
 if __name__ == '__main__':
@@ -108,7 +109,6 @@ if __name__ == '__main__':
     env_configs['pgm'] = pgm
     env_configs['pgm_dir'] = path
     env_configs['run_dir'] = 'run_'+str(i)
-    env_configs['feature_type'] = 'act_hist'
     env_configs['verbose'] = True
     env_configs['log_results'] = True
 
