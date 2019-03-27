@@ -16,20 +16,21 @@ for i, bm in enumerate(bms):
   env_configs['pgm'] = pgm
   env_configs['pgm_dir'] = path
   env_configs['run_dir'] = 'run_'+str(i)
-  #env_configs['feature_type'] = 'act_hist'
+  env_configs['feature_type'] = 'act_hist'
   env_configs['verbose'] = True
+  env_configs['log_results'] = True
 
   print("Tune for {}".format(pgm))
   tune.run_experiments({
       "my_experiment": {
           "run": "PPO",
           "env":HLSEnv,
-          "checkpoint_freq": 4,
-          "stop": {"episodes_total": 500},
+          #"checkpoint_freq": 4,
+          "stop": {"episodes_total": 200},
           "config": {
-              "sample_batch_size": 10,
-              "train_batch_size": 100,
-              "sgd_minibatch_size": 8,
+              "sample_batch_size": 3,
+              "train_batch_size": 10,
+              "sgd_minibatch_size": 3,
               "num_sgd_iter": 10,
               "horizon": 12,
               "num_gpus": 1,
