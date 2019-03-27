@@ -48,7 +48,7 @@ class HLSEnv(gym.Env):
     pgm_dir = env_config.get('pgm_dir', None)
     pgm_files = env_config.get('pgm_files', None)
     run_dir = env_config.get('run_dir', None)
-    self.delete_run_dir = env_config.get('delete_run_dir', False)
+    self.delete_run_dir = env_config.get('delete_run_dir', True)
     self.init_with_passes = env_config.get('init_with_passes', False)
     self.log_results = env_config.get('log_results', False)
 
