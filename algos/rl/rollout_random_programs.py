@@ -11,8 +11,7 @@ parser.add_argument('--steps', '-s', type=int, default=NumSteps)
 args = parser.parse_args()
 
 from gym_hls.envs.random_bm import get_random
-bms = get_random(N=1000)
-bms = bms[-10:]
+bms = get_random()
 
 needed_config_for_rollout = {}
 for i, bm in enumerate(bms):
@@ -22,6 +21,7 @@ for i, bm in enumerate(bms):
    env_configs["pgm_files"] = files
    env_configs["run_dir"] = 'run_'+pgm.replace(".c","")
    env_configs["orig_and_normalize"] = 'True'
+   env_configs["log_obs_reward"] = 'True'
    needed_config_for_rollout["env_config"] = env_configs
    #needed_config_for_rollout["model"] = {"use_lstm": True, "max_seq_len":5, "lstm_use_prev_action_reward":True}
    #needed_config_for_rollout["model"]= {"fcnet_hiddens":[256,256,256,256]}
@@ -33,8 +33,8 @@ for i, bm in enumerate(bms):
    print('-'*30)
    os.system(command)
 
-   results = pickle.load(open('cycles.pkl','rb'))
-   with open('results.csv','w') as f:
+   results = pickle.load(open('cycles2.pkl','rb'))
+   with open('results2.csv','w') as f:
       for key in results.keys():
           f.write("%s,%s\n"%(key,results[key]))
 

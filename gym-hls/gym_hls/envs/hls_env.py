@@ -6,7 +6,7 @@ import glob
 import shutil
 import numpy as np
 import gym
-from gym.spaces import Discrete, Box
+from gym.spaces import Discrete, Box, Tuple
 import sys
 from IPython import embed
 import math
@@ -16,14 +16,17 @@ class HLSEnv(gym.Env):
 
     self.norm_obs = env_config.get('normalize', False)
     self.orig_norm_obs = env_config.get('orig_and_normalize', False)
-
-    self.action_space = Discrete(45)
-
+    self.bandit = env_config.get('bandit', False)
+    if self.bandit:
+        self.action_space = Tuple([Discrete(45)]*12)
+    else:
+        self.action_space = Discrete(45)
     if self.orig_norm_obs:
       self.observation_space = Box(0.0,1.0,shape=(56*2,),dtype = np.float32)
     else:
       self.observation_space = Box(0.0,1.0,shape=(56,),dtype = np.float32)
-
+      if self.bandit:
+        self.observation_space = Box(0.0,1.0,shape=(12,),dtype = np.float32)
     self.prev_cycles = 10000000
     self.verbose = env_config.get('verbose',False)
     self.log_obs_reward = env_config.get('log_obs_reward',False)
@@ -81,11 +84,11 @@ class HLSEnv(gym.Env):
     if(self.verbose):
         self.print_info("program: {} -- ".format(self.pgm_name)+" cycle: {}".format(cycle))
         try:
-          cyc_dict = pickle.load(open('cycles.pkl','rb'))
+          cyc_dict = pickle.load(open('cycles2.pkl','rb'))
         except:
           cyc_dict = {}
         cyc_dict[self.pgm_name] = cycle
-        output = open('cycles.pkl', 'wb')
+        output = open('cycles2.pkl', 'wb')
         pickle.dump(cyc_dict, output)
         output.close()
 
@@ -137,7 +140,9 @@ class HLSEnv(gym.Env):
         else:
             log_obs = [math.log(e+1) for e in obs]
         return log_obs
-
+      if self.bandit:
+          obs = [1] * 12
+      print(obs)
       return obs
     else:
       return 0
@@ -146,7 +151,10 @@ class HLSEnv(gym.Env):
     info = {}
     if(self.verbose):
         self.print_info("program: {} --".format(self.pgm_name) + " action: {}".format(action))
-    self.passes.append(action)
+    if self.bandit:
+        self.passes = action
+    else:
+        self.passes.append(action)
     reward, done = self.get_rewards()
     obs = []
     if get_obs:
@@ -168,6 +176,10 @@ class HLSEnv(gym.Env):
         else:
           obs = [math.log(e+1) for e in obs]
         reward = np.sign(reward) * math.log(abs(reward)+1)
+    if self.bandit:
+        obs = self.passes
+    #print(obs)
+    #print(reward)
     return (obs, reward, done, info)
 
   def multi_steps(self, actions):
