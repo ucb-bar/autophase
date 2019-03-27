@@ -1,6 +1,18 @@
 import pickle
-def process_csv(filename='train_rand.pkl'): 
-  entries = []
+def load_data(filename='train_rand.pkl'):
+  pkl_file = open(filename, 'rb')
+  entries = pickle.load(pkl_file)
+  #obs, act, rew = entries[29000]
+  pkl_file.close()
+  #print("{} {} {}".format(obs, act, rew))
+  return entries
+
+def process_csv(filename='train_rand.pkl', append=False): 
+  if append:
+    entries = load_data()
+  else:
+    entries = []
+  print(len(entries))
   with open('random.log') as f:
     lines = f.readlines()
 
@@ -15,19 +27,13 @@ def process_csv(filename='train_rand.pkl'):
       
       entries.append((obs, act, rew))
   
+  print(len(entries))
   output = open(filename, 'wb')
   pickle.dump(entries, output)
   output.close()
+  return
 
-def load_data(filename='train_rand.pkl'):
-  pkl_file = open(filename, 'rb')
-  entries = pickle.load(pkl_file)
-  obs, act, rew = entries[0]
-  pkl_file.close()
-  print("{} {} {}".format(obs, act, rew))
-
-
-process_csv()
-load_data()
+#process_csv()
+#load_data()
   
       
