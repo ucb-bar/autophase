@@ -32,6 +32,8 @@ class HLSEnv(gym.Env):
       raise
       
     self.prev_cycles = 10000000
+    self.prev_obs = None
+    self.min_cycles = 10000000
     self.verbose = env_config.get('verbose',False)
     self.log_obs_reward = env_config.get('log_obs_reward',False)
 
@@ -41,6 +43,7 @@ class HLSEnv(gym.Env):
     run_dir = env_config.get('run_dir', None)
     self.delete_run_dir = env_config.get('delete_run_dir', False)
     self.init_with_passes = env_config.get('init_with_passes', False)
+    self.log_results = env_config.get('log_results', False)
 
     if run_dir:
       self.run_dir = run_dir+'_p'+str(os.getpid())
@@ -48,6 +51,9 @@ class HLSEnv(gym.Env):
       currentDT = datetime.datetime.now()
       self.run_dir ="run-"+currentDT.strftime("%Y-%m-%d-%H-%M-%S-%f")+'_p'+str(os.getpid())
 
+    if self.log_results:
+      self.log_file = open(self.run_dir+".log","w") 
+ 
     cwd = os.getcwd()
     self.run_dir = os.path.join(cwd, self.run_dir)
     print(self.run_dir)
@@ -70,6 +76,8 @@ class HLSEnv(gym.Env):
 
   def __del__(self):
     if self.delete_run_dir:
+      if self.log_results:
+        self.log_file.close()
       if os.path.isdir(self.run_dir):
         shutil.rmtree(self.run_dir)
 
@@ -101,6 +109,8 @@ class HLSEnv(gym.Env):
         pickle.dump(cyc_dict, output)
         output.close()
 
+    if (cycle < self.min_cycles):
+      self.min_cycles = cycle 
     if (diff):
       rew = self.prev_cycles - cycle
       self.prev_cycles = cycle
@@ -116,6 +126,7 @@ class HLSEnv(gym.Env):
   # reset() resets passes to []
   # reset(init=[1,2,3]) resets passes to [1,2,3]
   def reset(self, init=None, get_obs=True, get_rew=False, ret=True, sim=False):
+    self.min_cycles = 10000000
     self.prev_cycles, _ = getcycle.getHWCycles(self.pgm_name, self.passes, self.run_dir, sim=sim)
     self.passes = []
     if(self.verbose):
@@ -149,13 +160,16 @@ class HLSEnv(gym.Env):
                 log_obs = [math.log(e) for e in obs]
             else:
                 log_obs = [math.log(e+1) for e in obs]
-          obs = log_obs
+            obs = log_obs
 
         elif self.feature_type == 'act_hist':
           self.act_hist = [0] * 45
           obs = self.act_hist
         else:
           raise 
+
+        if self.log_results:
+          self.prev_obs = obs
 
       if get_rew and not get_obs:
         return reward 
@@ -192,16 +206,19 @@ class HLSEnv(gym.Env):
             raise
 
         if self.log_obs_reward:
-            if self.norm_obs or self.orig_norm_obs:
-              obs = [math.log(e) for e in obs]
-            else:
-              obs = [math.log(e+1) for e in obs]
+          if self.norm_obs or self.orig_norm_obs:
+            obs = [math.log(e) for e in obs]
+          else:
+            obs = [math.log(e+1) for e in obs]
 
+          reward = np.sign(reward) * math.log(abs(reward)+1)
       elif self.feature_type == 'act_hist':
         self.act_hist[action] += 1
         obs = self.act_hist
 
-    reward = np.sign(reward) * math.log(abs(reward)+1)
+    if self.log_results:
+      self.log_file.write("{}, {}, {}, {}, {}\n".format(self.prev_obs, action, reward, self.prev_cycles, self.min_cycles)) 
+      self.prev_obs = obs
     return (obs, reward, done, info)
 
   def multi_steps(self, actions):
