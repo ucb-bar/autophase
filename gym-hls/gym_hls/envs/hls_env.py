@@ -76,6 +76,7 @@ class HLSEnv(gym.Env):
     self.pre_passes_str= "-prune-eh -functionattrs -ipsccp -globalopt -mem2reg -deadargelim -sroa -early-cse -loweratomic -instcombine -loop-simplify"
     self.pre_passes = getcycle.passes2indice(self.pre_passes_str)
     self.passes = []
+    self.best_passes = []
     self.pgm = pgm
     self.pgm_name = pgm.replace('.c','')
     self.bc = self.pgm_name + '.prelto.2.bc'
@@ -118,6 +119,7 @@ class HLSEnv(gym.Env):
 
     if (cycle < self.min_cycles):
       self.min_cycles = cycle
+      self.best_passes = self.passes
     if (diff):
       rew = self.prev_cycles - cycle
       self.prev_cycles = cycle
@@ -133,7 +135,7 @@ class HLSEnv(gym.Env):
   # reset() resets passes to []
   # reset(init=[1,2,3]) resets passes to [1,2,3]
   def reset(self, init=None, get_obs=True, get_rew=False, ret=True, sim=False):
-    self.min_cycles = 10000000
+    #self.min_cycles = 10000000
     self.prev_cycles, _ = getcycle.getHWCycles(self.pgm_name, self.passes, self.run_dir, sim=sim)
     self.passes = []
     if(self.verbose):
@@ -199,8 +201,9 @@ class HLSEnv(gym.Env):
     reward, done = self.get_rewards()
     obs = []
     if(self.verbose):
-        self.print_info("program: {} --".format(self.pgm_name) + " action: {}".format(action))
+        self.print_info("program: {} --".format(self.pgm_name) + "passes: {}".format(self.passes))
         self.print_info("reward: {} -- done: {}".format(reward, done))
+        self.print_info("min_cycles: {} -- best_passes: {}".format(self.min_cycles, self.best_passes))
         self.print_info("act_hist: {}".format(self.act_hist))
 
     if get_obs:
@@ -231,7 +234,8 @@ class HLSEnv(gym.Env):
         obs = self.passes
 
     if self.log_results:
-      self.log_file.write("{}, {}, {}, {}, {}\n".format(self.prev_obs, action, reward, self.prev_cycles, self.min_cycles))
+      #self.log_file.write("{}, {}, {}, {}, {}\n".format(self.prev_obs, action, reward, self.prev_cycles, self.min_cycles))
+      self.log_file.write("{}|{}|{}|{}|{}\n".format(self.prev_obs, action, reward, self.prev_cycles, self.min_cycles, self.best_passes))
       self.prev_obs = obs
     return (obs, reward, done, info)
 
