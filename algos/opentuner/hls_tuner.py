@@ -20,8 +20,10 @@ class GccFlagsTuner(MeasurementInterface):
   def __init__(self, configs, *pargs, **kwargs):
     super(GccFlagsTuner, self).__init__(program_name=configs['pgm'], *pargs,
                                         **kwargs)
+    self.sample_size = 0
     self.configs = configs
     self.env = HLSEnv(configs)
+    self.log_file = open("opentuner.log","w")
 
   @classmethod
   def main(cls, configs, args, *pargs, **kwargs):
@@ -43,6 +45,7 @@ class GccFlagsTuner(MeasurementInterface):
   def call_program(self, cmd, limit=None, memory_limit=None, **kwargs):
     time = self.env.get_cycles(cmd)
 
+    self.log_file.write("{}|{}|{}|{}".format(self.configs['pgm'], time, self.sample_size, cmd))
     return {'time': time,
             'timeout': False,
             'returncode': 0}
@@ -60,7 +63,9 @@ class GccFlagsTuner(MeasurementInterface):
     for index in order:
       if cfg['hls_pass_{}'.format(index)]:  
         passes.append(index)
+    self.sample_size += 1
     print(passes)
+    print(self.sample_size)
     return self.call_program(passes)
   
   def run_precompiled(self, desired_result, input, limit, compile_result, id):
@@ -94,6 +99,7 @@ class GccFlagsTuner(MeasurementInterface):
     #self.manipulator().save_to_file(configuration.data,
     #                                '{}.json'.format(self.configs['pgm'].replace(".c","")))
     print(configuration.data)
+    self.log_file.write("{}".format(configuration.data))
   
 
 if __name__ == '__main__':
