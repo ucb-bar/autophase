@@ -1,13 +1,5 @@
 import pickle
 import numpy as np
-def load_data(filename='train_rand.pkl'):
-  pkl_file = open(filename, 'rb')
-  entries = pickle.load(pkl_file)
-  #obs, act, rew = entries[29000]
-  pkl_file.close()
-  #print("{} {} {}".format(obs, act, rew))
-  return entries
-
 def process_csv(filename='train_rand.pkl', append=False):
   if append:
     entries = load_data()
@@ -27,33 +19,33 @@ def process_csv(filename='train_rand.pkl', append=False):
       rew = int(tmp[1])
 
       entries.append((obs, act, rew))
-
-
   pickle.dump(entries, output)
   output.close()
   return
 
 def load_data(filename='train_rand.pkl'):
   num_passes = 45
-  pkl_file = open(filename, 'rb')
-  entries = pickle.load(pkl_file)
   train_data = {}
   y_data = {}
   given_passes = []
   for p in range(num_passes):
       train_data[p]=[]
       y_data[p]=[]
-  for (obs,act,rew) in entries:
-    if(int(act) not in given_passes):
-        given_passes.append(int(act))
-    train_data[int(act)].append(obs)
-    good_rew = 0
-    if int(rew) > 0:
-        good_rew = 1
-    y_data[int(act)].append(good_rew)
-  #obs, act, rew = entries[0]
-  pkl_file.close()
-  print("num passes found in pkl file",len(sorted(given_passes)))
+  filenames = [filename]
+  for filename in filenames:
+    pkl_file = open(filename, 'rb')
+    entries = pickle.load(pkl_file)
+    for (obs,act,rew) in entries:
+        if(int(act) not in given_passes):
+            given_passes.append(int(act))
+        train_data[int(act)].append(obs)
+        good_rew = 0
+        if int(rew) > 0:
+            good_rew = 1
+        y_data[int(act)].append(good_rew)
+    #obs, act, rew = entries[0]
+    pkl_file.close()
+  print("num passes found in pkl files",len(sorted(given_passes)))
   for p in range(num_passes):
       train_data[p] = np.array(train_data[p])
       y_data[p] = np.array(y_data[p])
