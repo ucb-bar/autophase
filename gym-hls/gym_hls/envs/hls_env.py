@@ -19,8 +19,13 @@ class HLSEnv(gym.Env):
     self.orig_norm_obs = env_config.get('orig_and_normalize', False)
     self.feature_type = env_config.get('feature_type', 'pgm') # pmg or act_hist
     self.act_hist = [0] * 45
-    self.bandit = env_config.get('bandit', False)
-    if self.bandit:
+    self.bandit = self.feature_type == 'bandit'
+    self.action_pgm = self.feature_type == 'act_pgm'
+    self.action_meaning = [-1,0,1]
+    self.reset_actions = [23]*45
+    if self.action_pgm:
+        self.action_space=Tuple([Discrete(len(self.action_meaning))]*45)
+    elif self.bandit:
         self.action_space = Tuple([Discrete(45)]*12)
     else:
         self.action_space = Discrete(45)
@@ -32,6 +37,8 @@ class HLSEnv(gym.Env):
         self.observation_space = Box(0.0,1.0,shape=(56,),dtype = np.float32)
     elif self.feature_type == 'act_hist':
       self.observation_space = Box(0.0,1.0,shape=(45,),dtype = np.float32)
+    elif self.feature_type == 'act_pgm':
+      self.observation_space = Box(0.0,1.0,shape=(45+56,),dtype = np.float32)
     elif self.bandit:
       self.observation_space = Box(0.0,1.0,shape=(12,),dtype = np.float32)
 
@@ -136,16 +143,16 @@ class HLSEnv(gym.Env):
   # reset(init=[1,2,3]) resets passes to [1,2,3]
   def reset(self, init=None, get_obs=True, get_rew=False, ret=True, sim=False):
     #self.min_cycles = 10000000
-    self.prev_cycles, _ = getcycle.getHWCycles(self.pgm_name, self.passes, self.run_dir, sim=sim)
-    self.passes = []
-    if(self.verbose):
-        self.print_info("program: {} -- ".format(self.pgm_name)+" reset cycles: {}".format(self.prev_cycles))
+    if self.feature_type == 'act_pgm':
+        self.passes = self.reset_actions
     if self.init_with_passes:
       self.passes.extend(self.pre_passes)
 
     if init:
       self.passes.extend(init)
-
+    self.prev_cycles, _ = getcycle.getHWCycles(self.pgm_name, self.passes, self.run_dir, sim=sim)
+    if(self.verbose):
+        self.print_info("program: {} -- ".format(self.pgm_name)+" reset cycles: {}".format(self.prev_cycles))
     if ret:
       if get_rew:
         reward, _ = self.get_rewards(sim=sim)
@@ -174,6 +181,8 @@ class HLSEnv(gym.Env):
         elif self.feature_type == 'act_hist':
           self.act_hist = [0] * 45
           obs = self.act_hist
+        elif self.feature_type == 'act_pgm':
+          obs = self.reset_actions+self.get_obs()
         elif self.bandit:
           obs = [1] * 12
         else:
@@ -195,6 +204,13 @@ class HLSEnv(gym.Env):
     info = {}
     if self.bandit:
         self.passes = action
+    elif self.feature_type =='act_pgm':
+        for i in range(45):
+            self.passes[i] = (self.passes[i]+self.action_meaning[action[i]])%45
+            if self.passes[i] > 44:
+                self.passes[i] = 44
+            if self.passes[i] < 0:
+                self.passes[i] = 0
     else:
         self.passes.append(action)
 
@@ -230,6 +246,9 @@ class HLSEnv(gym.Env):
       elif self.feature_type == 'act_hist':
         self.act_hist[action] += 1
         obs = self.act_hist
+      elif self.feature_type == 'act_pgm':
+        obs = self.passes + self.get_obs()
+
       elif self.bandit:
         obs = self.passes
 

@@ -3,7 +3,7 @@ from gym_hls.envs.utils import lsFiles
 from os.path import isfile, join
 import pickle
 
-def get_random(path="/scratch/qijing.huang/random_pgm/dataset", pkl_path='/scratch/qijing.huang/AutoPhase/gym-hls/gym_hls/envs/', N=None):
+def get_random(path="/scratch/qijing.huang/random_pgm/dataset", pkl_path='/scratch/ameerh/AutoPhase/gym-hls/gym_hls/envs/', N=None):
   import os
   cwd = os.getcwd()
   pkl_file = open(join(pkl_path, 'random_pgms.pkl'), 'rb')
@@ -13,7 +13,7 @@ def get_random(path="/scratch/qijing.huang/random_pgm/dataset", pkl_path='/scrat
   interval = [0, 1000, 5000, 10000, 50000, 100000]
   pgm_list = buckets[2] # 5000~10000
   pgms = list(map(lambda x: x[0], pgm_list))
-  
+
   aux_files = lsFiles(join(path, 'skeleton'))
   random_list = []
   if N is None:
@@ -22,6 +22,6 @@ def get_random(path="/scratch/qijing.huang/random_pgm/dataset", pkl_path='/scrat
     files = []
     files.append(join(path, pgms[i]))
     files.extend(aux_files)
-    random_list.append((pgms[i], files)) 
-  return random_list 
+    random_list.append((pgms[i], files))
+  return random_list
 

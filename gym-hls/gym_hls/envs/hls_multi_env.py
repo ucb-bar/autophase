@@ -6,7 +6,7 @@ import glob
 import shutil
 import numpy as np
 import gym
-from gym.spaces import Discrete, Box
+from gym.spaces import Tuple, Discrete, Box
 from gym_hls.envs.hls_env import HLSEnv
 import math
 # Init: 8 progs, 8 envs
@@ -19,10 +19,14 @@ class HLSMultiEnv(gym.Env):
     self.num_pgms = env_config.get('num_pgms', 6)
     self.norm_obs = env_config.get('normalize', False)
     self.orig_norm_obs = env_config.get('orig_and_normalize', False)
-
+    self.feature_type = env_config.get('feature_type','pgm')
     self.action_space = Discrete(45)
+    self.action_meaning = [-1,0,1]
     if self.orig_norm_obs:
-      self.observation_space = Box(0.0,1.0,shape=(56*2,),dtype = np.float32)
+        self.observation_space = Box(0.0,1.0,shape=(56*2,),dtype = np.float32)
+    elif self.feature_type == 'act_pgm':
+        self.observation_space = Box(0.0,1.0,shape=(45+56,),dtype = np.float32)
+        self.action_space=Tuple([Discrete(len(self.action_meaning))]*45)
     else:
       self.observation_space = Box(0.0,1.0,shape=(56,),dtype = np.float32)
 
@@ -35,6 +39,7 @@ class HLSMultiEnv(gym.Env):
       for i, bm in enumerate(bms):
         pgm, path = bm
         env_conf = {}
+        env_conf['feature_type'] = self.feature_type
         env_conf['pgm'] = pgm
         env_conf['pgm_dir'] = path
         env_conf['run_dir'] = 'run_'+pgm.replace(".c","")
@@ -49,6 +54,7 @@ class HLSMultiEnv(gym.Env):
       for i, bm in enumerate(bms):
         pgm, files = bm
         env_conf = {}
+        env_conf['feature_type'] = self.feature_type
         env_conf['pgm'] = pgm
         env_conf['pgm_files'] = files
         env_conf['run_dir'] = 'run_'+pgm.replace(".c","")
