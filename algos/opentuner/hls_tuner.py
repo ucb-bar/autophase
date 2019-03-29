@@ -23,7 +23,8 @@ class GccFlagsTuner(MeasurementInterface):
     self.sample_size = 0
     self.configs = configs
     self.env = HLSEnv(configs)
-    self.log_file = open("opentuner.log","w")
+    self.min_cycles =10000000
+    self.log_file = open("opentuner_{}.log".format(configs['pgm']),"w")
 
   @classmethod
   def main(cls, configs, args, *pargs, **kwargs):
@@ -44,8 +45,10 @@ class GccFlagsTuner(MeasurementInterface):
 
   def call_program(self, cmd, limit=None, memory_limit=None, **kwargs):
     time = self.env.get_cycles(cmd)
+    if time < self.min_cycles:
+      self.min_cycles = time
 
-    self.log_file.write("{}|{}|{}|{}".format(self.configs['pgm'], time, self.sample_size, cmd))
+    self.log_file.write("{}|{}|{}|{}|{}\n".format(self.configs['pgm'], time, self.min_cycles, self.sample_size, cmd))
     return {'time': time,
             'timeout': False,
             'returncode': 0}
@@ -99,7 +102,7 @@ class GccFlagsTuner(MeasurementInterface):
     #self.manipulator().save_to_file(configuration.data,
     #                                '{}.json'.format(self.configs['pgm'].replace(".c","")))
     print(configuration.data)
-    self.log_file.write("{}".format(configuration.data))
+    #self.log_file.write("{}\n".format(configuration.data))
   
 
 if __name__ == '__main__':
