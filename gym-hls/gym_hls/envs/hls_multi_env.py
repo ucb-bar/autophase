@@ -34,8 +34,8 @@ class HLSMultiEnv(gym.Env):
     self.idx = np.random.randint(self.num_pgms)
 
     if bm_name == "chstone":
-      from gym_hls.envs.chstone_bm import get_chstone, get_orig6
-      bms = get_orig6()
+      from gym_hls.envs.chstone_bm import get_chstone, get_all9
+      bms = get_all9()
       for i, bm in enumerate(bms):
         pgm, path = bm
         env_conf = {}
