@@ -68,9 +68,7 @@ class GenericPolicy(object):
         self.sess.run(tf.global_variables_initializer())
 
     def compute(self, observation, add_noise=False, update=True):
-        print(observation)
         observation = self.preprocessor.transform(observation)
-        print(observation)
         observation = self.observation_filter(observation[None], update=update)
         #observation = self.observation_filter(observation, update=update)
         action = self.sess.run(

@@ -14,7 +14,7 @@ for i, bm in enumerate(bms):
   pgm, path = bm
   env_configs['pgm'] = pgm
   env_configs['pgm_dir'] = path
-  env_configs['run_dir'] = 'run_'+str(i)
+  env_configs['run_dir'] = 'run_es_'+ pgm.replace(".c","")
   #env_configs['feature_type'] = 'act_hist'
   env_configs['verbose'] = True
   env_configs['log_results'] = True
