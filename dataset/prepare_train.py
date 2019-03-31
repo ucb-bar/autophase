@@ -1,24 +1,28 @@
 import pickle
 import numpy as np
 def process_csv(filename='train_rand.pkl', append=False):
+def process_csv(logfile='random.log', filename='train_rand.pkl', append=False): 
   if append:
     entries = load_data()
   else:
     entries = []
   print(len(entries))
-  with open('random.log') as f:
+  with open(logfile) as f:
     lines = f.readlines()
 
     for line in lines:
-      data = line.split('],')
+      data = line.split('],') 
       obs = data[0].replace('[','').split(',')
       obs = list(map(lambda x: int(x), obs))
-
-      tmp = data[1].split(',')
-      act = int(tmp[0])
-      rew = int(tmp[1])
-
+            
+      tmp = data[1].split(',') 
+      act = tmp[0]
+      rew = tmp[1]
+      
       entries.append((obs, act, rew))
+  
+  print(len(entries))
+  output = open(filename, 'wb')
   pickle.dump(entries, output)
   output.close()
   return

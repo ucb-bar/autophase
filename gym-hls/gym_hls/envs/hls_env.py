@@ -23,6 +23,7 @@ class HLSEnv(gym.Env):
     self.action_pgm = self.feature_type == 'act_pgm'
     self.action_meaning = [-1,0,1]
     self.reset_actions = [23]*45
+    self.max_episode_steps=45
     if self.action_pgm:
         self.action_space=Tuple([Discrete(len(self.action_meaning))]*45)
     elif self.bandit:
@@ -190,6 +191,7 @@ class HLSEnv(gym.Env):
         else:
           raise
 
+        obs = np.array(obs)
         if self.log_results:
           self.prev_obs = obs
 
@@ -254,9 +256,10 @@ class HLSEnv(gym.Env):
       elif self.bandit:
         obs = self.passes
 
+    obs = np.array(obs)
     if self.log_results:
       #self.log_file.write("{}, {}, {}, {}, {}\n".format(self.prev_obs, action, reward, self.prev_cycles, self.min_cycles))
-      self.log_file.write("{}|{}|{}|{}|{}\n".format(self.prev_obs, action, reward, self.prev_cycles, self.min_cycles, self.best_passes))
+      self.log_file.write("{}|{}|{}|{}|{}|{}|{}\n".format(self.prev_obs, action, reward, self.prev_cycles, self.min_cycles, self.passes, self.best_passes))
       self.prev_obs = obs
     return (obs, reward, done, info)
 
