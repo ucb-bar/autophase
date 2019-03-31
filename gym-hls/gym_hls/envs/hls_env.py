@@ -96,9 +96,9 @@ class HLSEnv(gym.Env):
       if os.path.isdir(self.run_dir):
         shutil.rmtree(self.run_dir)
 
-  def get_Ox_rewards(self, level=3, sim=False):
+  def get_Ox_rewards(self, level=3, sim=False, clang_opt=False):
     from gym_hls.envs.getox import getOxCycles
-    cycle = getOxCycles(self.pgm_name, self.run_dir, level=level, sim=sim)
+    cycle = getOxCycles(self.pgm_name, self.run_dir, level=level, clang_opt=clang_opt, sim=sim)
     return -cycle
 
   def print_info(self,message, end = '\n'):

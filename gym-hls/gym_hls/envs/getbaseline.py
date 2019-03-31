@@ -1,5 +1,5 @@
 from gym_hls.envs.hls_env import HLSEnv
-def getbaseline(bm_name='chstone', num_pgms=None):
+def getbaseline(bm_name='chstone', num_pgms=None, clang_opt=False):
   import time
   if bm_name == "chstone": 
     from chstone_bm import get_chstone, get_others, get_all9
@@ -30,16 +30,17 @@ def getbaseline(bm_name='chstone', num_pgms=None):
     else:
       raise
     
+    env_conf['delete_run_dir'] = False
     env = HLSEnv(env_conf)
 
     try:
       begin = time.time()
-      o0_cycle = - env.get_Ox_rewards(level=0)
+      o0_cycle = - env.get_Ox_rewards(level=0, clang_opt=clang_opt)
       end = time.time()
       o0_compile_time = end - begin
 
       begin = time.time()
-      o3_cycle = - env.get_Ox_rewards(level=3)
+      o3_cycle = - env.get_Ox_rewards(level=3, clang_opt=clang_opt)
       end = time.time()
       o3_compile_time = end - begin
       env.__del__()
