@@ -9,14 +9,14 @@ import subprocess
 #"""
 makefile_str= """
 NAME= test_c_code
-NO_OPT=1
+NO_OPT=clang_opt
 CUSTOM_OPT=1
 EXTRA_OPT_FLAGS = test_flag 
 LEVEL = /scratch/qijing.huang/LegUp/legup-4.0/examples
 include $(LEVEL)/Makefile.common
 """
 
-def getOxCycles(c_code, path, level=3, sim=False):
+def getOxCycles(c_code, path, level=3, clang_opt=False, sim=False):
     #print len(opt_passes)
 
     makefile_new = makefile_str.replace("test_c_code", c_code)
@@ -24,7 +24,11 @@ def getOxCycles(c_code, path, level=3, sim=False):
       makefile_new = makefile_new.replace("test_flag", "-O"+str(level))
     else:
       makefile_new = makefile_new.replace("test_flag", "")
-      
+
+    if clang_opt:
+      makefile_new = makefile_new.replace("clang_opt", "0")
+    else:
+      makefile_new = makefile_new.replace("clang_opt", "1")
 
     # Update the Makefile
     f = open(path + "/Makefile","w")
