@@ -143,6 +143,8 @@ class HLSEnv(gym.Env):
   # reset(init=[1,2,3]) resets passes to [1,2,3]
   def reset(self, init=None, get_obs=True, get_rew=False, ret=True, sim=False):
     #self.min_cycles = 10000000
+
+    self.passes = []
     if self.feature_type == 'act_pgm':
         self.passes = self.reset_actions
     if self.init_with_passes:
