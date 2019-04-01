@@ -1,3 +1,5 @@
+import pickle
+
 def get_random_pgm_groups(): 
   interval = [0, 1000, 5000, 10000, 50000, 100000]
   buckets = {}
@@ -17,6 +19,7 @@ def get_random_pgm_groups():
       o3_cycle = int(data[2])
 
       if o0_cycle == 10000000:
+        #print("{}".format(bm))
         continue 
    
       valid_count += 1
@@ -29,3 +32,8 @@ def get_random_pgm_groups():
   for i in range(len(interval)-1):
     print("Interval {} ~ {}: {}".format(interval[i], interval[i+1],len(buckets[i])))
 
+  output = open('random_pgms.pkl', 'wb')
+  pickle.dump(buckets, output)
+  output.close()
+
+get_random_pgm_groups()
