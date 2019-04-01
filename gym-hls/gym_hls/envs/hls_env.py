@@ -260,6 +260,7 @@ class HLSEnv(gym.Env):
     if self.log_results:
       #self.log_file.write("{}, {}, {}, {}, {}\n".format(self.prev_obs, action, reward, self.prev_cycles, self.min_cycles))
       self.log_file.write("{}|{}|{}|{}|{}|{}|{}\n".format(self.prev_obs, action, reward, self.prev_cycles, self.min_cycles, self.passes, self.best_passes))
+      self.log_file.flush()
       self.prev_obs = obs
     return (obs, reward, done, info)
 
