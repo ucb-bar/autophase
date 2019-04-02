@@ -35,9 +35,9 @@ class HLSEnv(gym.Env):
       if self.orig_norm_obs:
         self.observation_space = Box(0.0,1.0,shape=(56*2,),dtype = np.float32)
       else:
-        self.observation_space = Box(0.0,1.0,shape=(56,),dtype = np.float32)
-    elif self.feature_type == 'act_hist':
-      self.observation_space = Box(0.0,1.0,shape=(45,),dtype = np.float32)
+        self.observation_space = Box(0.0,1000000,shape=(56,),dtype = np.int32)
+    elif self.feature_type == 'act_hist' or self.feature_type == "act_hist_sparse":
+      self.observation_space = Box(0.0,45,shape=(45,),dtype = np.int32)
     elif self.feature_type == 'act_pgm':
       self.observation_space = Box(0.0,1.0,shape=(45+56,),dtype = np.float32)
     elif self.bandit:
@@ -47,6 +47,7 @@ class HLSEnv(gym.Env):
       raise
 
     self.prev_cycles = 10000000
+    self.O0_cycles = 10000000 
     self.prev_obs = None
     self.min_cycles = 10000000
     self.verbose = env_config.get('verbose',False)
@@ -111,6 +112,9 @@ class HLSEnv(gym.Env):
 
   def get_rewards(self, diff=True, sim=False):
     cycle, done = getcycle.getHWCycles(self.pgm_name, self.passes, self.run_dir, sim=sim)
+    if cycle == 10000000:
+       cycle = 2 * self.O0_cycles
+
    # print("pass: {}".format(self.passes))
    # print("prev_cycles: {}".format(self.prev_cycles))
     if(self.verbose):
@@ -154,6 +158,7 @@ class HLSEnv(gym.Env):
     if init:
       self.passes.extend(init)
     self.prev_cycles, _ = getcycle.getHWCycles(self.pgm_name, self.passes, self.run_dir, sim=sim)
+    self.O0_cycles = self.prev_cycles
     if(self.verbose):
         self.print_info("program: {} -- ".format(self.pgm_name)+" reset cycles: {}".format(self.prev_cycles))
     if ret:
@@ -181,7 +186,7 @@ class HLSEnv(gym.Env):
                 log_obs = [math.log(e+1) for e in obs]
             obs = log_obs
 
-        elif self.feature_type == 'act_hist':
+        elif self.feature_type == 'act_hist' or self.feature_type == "act_hist_sparse":
           self.act_hist = [0] * 45
           obs = self.act_hist
         elif self.feature_type == 'act_pgm':
@@ -222,7 +227,12 @@ class HLSEnv(gym.Env):
     else:
         self.passes.append(action)
 
-    reward, done = self.get_rewards()
+    if self.feature_type == "act_hist_sparse" and len(self.passes) <  self.max_episode_steps:
+      reward = 0
+      done = False
+    else:
+      reward, done = self.get_rewards()
+
     obs = []
     if(self.verbose):
         self.print_info("program: {} --".format(self.pgm_name) + "passes: {}".format(self.passes))
@@ -251,7 +261,7 @@ class HLSEnv(gym.Env):
             obs = [math.log(e+1) for e in obs]
           reward = np.sign(reward) * math.log(abs(reward)+1)
 
-      elif self.feature_type == 'act_hist':
+      elif self.feature_type == 'act_hist' or self.feature_type == "act_hist_sparse":
         self.act_hist[action] += 1
         obs = self.act_hist
       elif self.feature_type == 'act_pgm':
@@ -264,10 +274,15 @@ class HLSEnv(gym.Env):
 
     obs = np.array(obs)
     if self.log_results:
-      #self.log_file.write("{}, {}, {}, {}, {}\n".format(self.prev_obs, action, reward, self.prev_cycles, self.min_cycles))
-      self.log_file.write("{}|{}|{}|{}|{}|{}|{}\n".format(self.prev_obs, action, reward, self.prev_cycles, self.min_cycles, self.passes, self.best_passes))
+      if self.feature_type == "act_hist_sparse" and (len(self.passes) == self.max_episode_steps):
+        #self.log_file.write("{}, {}, {}, {}, {}\n".format(self.prev_obs, action, reward, self.prev_cycles, self.min_cycles))
+        print("{}|{}|{}|{}|{}|{}|{}\n".format(self.prev_obs, action, reward, self.prev_cycles, self.min_cycles, self.passes, self.best_passes))
+        self.log_file.write("{}|{}|{}|{}|{}|{}|{}\n".format(self.prev_obs, action, reward, self.prev_cycles, self.min_cycles, self.passes, self.best_passes))
+      else:
+        self.log_file.write("{}|{}|{}|{}|{}|{}|{}\n".format(self.prev_obs, action, reward, self.prev_cycles, self.min_cycles, self.passes, self.best_passes))
       self.log_file.flush()
-      self.prev_obs = obs
+
+    self.prev_obs = obs
     return (obs, reward, done, info)
 
   def multi_steps(self, actions):
