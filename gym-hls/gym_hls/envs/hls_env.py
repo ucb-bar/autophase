@@ -13,33 +13,43 @@ import math
 import pickle
 
 class HLSEnv(gym.Env):
-  def __init__(self, env_config):
 
+  def __init__(self, env_config):
+    self.pass_len = 45
+    self.feat_len = 56
+
+    self.shrink = env_config.get('shrink', False)
+    if self.shrink:
+      self.eff_pass_indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44] 
+      self.pass_len = len(self.eff_pass_indices) 
+      self.eff_feat_indices = [5, 7, 8, 9, 11, 13, 15, 17, 18, 19, 20, 21, 22, 24, 26, 28, 30, 31, 32, 33, 34, 36, 37, 38, 40, 42, 46, 49, 52, 55]
+      self.feat_len = len(self.eff_feat_indices) 
+    
     self.norm_obs = env_config.get('normalize', False)
     self.orig_norm_obs = env_config.get('orig_and_normalize', False)
     self.feature_type = env_config.get('feature_type', 'pgm') # pmg or act_hist
-    self.act_hist = [0] * 45
+    self.act_hist = [0] * self.pass_len
     self.bandit = self.feature_type == 'bandit'
     self.action_pgm = self.feature_type == 'act_pgm'
     self.action_meaning = [-1,0,1]
-    self.reset_actions = [23]*45
+    self.reset_actions = [int(self.pass_len // 2)] * self.pass_len
     self.max_episode_steps=45
     if self.action_pgm:
-        self.action_space=Tuple([Discrete(len(self.action_meaning))]*45)
+        self.action_space=Tuple([Discrete(len(self.action_meaning))]*self.pass_len)
     elif self.bandit:
-        self.action_space = Tuple([Discrete(45)]*12)
+        self.action_space = Tuple([Discrete(self.pass_len)]*12)
     else:
-        self.action_space = Discrete(45)
+        self.action_space = Discrete(self.pass_len)
 
     if self.feature_type == 'pgm':
       if self.orig_norm_obs:
-        self.observation_space = Box(0.0,1.0,shape=(56*2,),dtype = np.float32)
+        self.observation_space = Box(0.0,1.0,shape=(self.feat_len*2,),dtype = np.float32)
       else:
-        self.observation_space = Box(0.0,1000000,shape=(56,),dtype = np.int32)
+        self.observation_space = Box(0.0,1000000,shape=(self.feat_len,),dtype = np.int32)
     elif self.feature_type == 'act_hist' or self.feature_type == "act_hist_sparse":
-      self.observation_space = Box(0.0,45,shape=(45,),dtype = np.int32)
+      self.observation_space = Box(0.0,45,shape=(self.pass_len,),dtype = np.int32)
     elif self.feature_type == 'act_pgm':
-      self.observation_space = Box(0.0,1.0,shape=(45+56,),dtype = np.float32)
+      self.observation_space = Box(0.0,1.0,shape=(self.pass_len+self.feat_len,),dtype = np.float32)
     elif self.bandit:
       self.observation_space = Box(0.0,1.0,shape=(12,),dtype = np.float32)
 
@@ -107,18 +117,27 @@ class HLSEnv(gym.Env):
         sys.stdout.write('\x1b[1;34m' + message.strip() + '\x1b[0m' + end)
 
   def get_cycles(self, passes, sim=False):
-    cycle, _ = getcycle.getHWCycles(self.pgm_name, passes, self.run_dir, sim=sim)
+    if self.shrink:
+      actual_passes = [self.eff_pass_indices[index] for index in passes] 
+    else:
+      actual_passes =  passes
+
+    cycle, _ = getcycle.getHWCycles(self.pgm_name, actual_passes, self.run_dir, sim=sim)
     return cycle
 
   def get_rewards(self, diff=True, sim=False):
-    cycle, done = getcycle.getHWCycles(self.pgm_name, self.passes, self.run_dir, sim=sim)
+    if self.shrink:
+      actual_passes = [self.eff_pass_indices[index] for index in self.passes] 
+    else:
+      actual_passes =  self.passes
+    cycle, done = getcycle.getHWCycles(self.pgm_name, actual_passes, self.run_dir, sim=sim)
     if cycle == 10000000:
        cycle = 2 * self.O0_cycles
 
    # print("pass: {}".format(self.passes))
    # print("prev_cycles: {}".format(self.prev_cycles))
     if(self.verbose):
-        self.print_info("passes: {}".format(self.passes))
+        self.print_info("passes: {}".format(actual_passes))
         self.print_info("program: {} -- ".format(self.pgm_name)+" cycle: {}  -- prev_cycles: {}".format(cycle, self.prev_cycles))
         try:
           cyc_dict = pickle.load(open('cycles2.pkl','rb'))
@@ -131,7 +150,7 @@ class HLSEnv(gym.Env):
 
     if (cycle < self.min_cycles):
       self.min_cycles = cycle
-      self.best_passes = self.passes
+      self.best_passes = actual_passes 
     if (diff):
       rew = self.prev_cycles - cycle
       self.prev_cycles = cycle
@@ -141,8 +160,13 @@ class HLSEnv(gym.Env):
     return rew, done
 
   def get_obs(self):
-    feat = getfeatures.run_stats(self.bc, self.run_dir)
-    return feat
+    feats = getfeatures.run_stats(self.bc, self.run_dir)
+
+    if self.shrink:
+      actual_feats = [feats[index] for index in self.eff_feat_indices] 
+    else:
+      actual_feats = feats
+    return actual_feats
 
   # reset() resets passes to []
   # reset(init=[1,2,3]) resets passes to [1,2,3]
@@ -157,7 +181,8 @@ class HLSEnv(gym.Env):
 
     if init:
       self.passes.extend(init)
-    self.prev_cycles, _ = getcycle.getHWCycles(self.pgm_name, self.passes, self.run_dir, sim=sim)
+
+    self.prev_cycles = self.get_cycles(self.passes)
     self.O0_cycles = self.prev_cycles
     if(self.verbose):
         self.print_info("program: {} -- ".format(self.pgm_name)+" reset cycles: {}".format(self.prev_cycles))
@@ -187,12 +212,12 @@ class HLSEnv(gym.Env):
             obs = log_obs
 
         elif self.feature_type == 'act_hist' or self.feature_type == "act_hist_sparse":
-          self.act_hist = [0] * 45
+          self.act_hist = [0] * self.pass_len
           obs = self.act_hist
         elif self.feature_type == 'act_pgm':
           obs = self.reset_actions+self.get_obs()
         elif self.feature_type == 'hist_pgm':
-          self.act_hist = [0] * 45
+          self.act_hist = [0] * self.pass_len
           obs = self.act_hist + self.get_obs
         elif self.bandit:
           obs = [1] * 12
@@ -217,11 +242,11 @@ class HLSEnv(gym.Env):
     if self.bandit:
         self.passes = action
     elif self.feature_type =='act_pgm':
-        for i in range(45):
+        for i in range(self.pass_len):
             action = np.array(action).flatten()
-            self.passes[i] = (self.passes[i]+self.action_meaning[action[i]])%45
-            if self.passes[i] > 44:
-                self.passes[i] = 44
+            self.passes[i] = (self.passes[i]+self.action_meaning[action[i]])%self.pass_len
+            if self.passes[i] > self.pass_len - 1:
+                self.passes[i] = self.pass_len - 1
             if self.passes[i] < 0:
                 self.passes[i] = 0
     else:
