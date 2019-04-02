@@ -186,6 +186,9 @@ class HLSEnv(gym.Env):
           obs = self.act_hist
         elif self.feature_type == 'act_pgm':
           obs = self.reset_actions+self.get_obs()
+        elif self.feature_type == 'hist_pgm':
+          self.act_hist = [0] * 45
+          obs = self.act_hist + self.get_obs
         elif self.bandit:
           obs = [1] * 12
         else:
@@ -210,6 +213,7 @@ class HLSEnv(gym.Env):
         self.passes = action
     elif self.feature_type =='act_pgm':
         for i in range(45):
+            action = np.array(action).flatten()
             self.passes[i] = (self.passes[i]+self.action_meaning[action[i]])%45
             if self.passes[i] > 44:
                 self.passes[i] = 44
@@ -252,7 +256,9 @@ class HLSEnv(gym.Env):
         obs = self.act_hist
       elif self.feature_type == 'act_pgm':
         obs = self.passes + self.get_obs()
-
+      elif self.feature_type == 'hist_pgm':
+        self.act_hist[action] += 1
+        obs = self.act_hist + self.get_obs()
       elif self.bandit:
         obs = self.passes
 
