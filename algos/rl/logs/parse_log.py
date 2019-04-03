@@ -29,12 +29,13 @@ def parse_log(algo="a3c"):
   from gym_hls.envs.chstone_bm import get_chstone, get_others, get_all9
   bms = get_all9()
   fout = open("report_"+algo+".txt", "w")
-  for bm in bms:
+  for i, bm in enumerate(bms):
     pgm, _ = bm
     pgm = pgm.replace(".c", "")
+    #pgm = str(i)
     min_cycle, sample_size, actual_sample_size, threads = get_min("run_{}_{}_".format(algo, pgm))
     fout.write("{}|{}|{}|{}|{}\n".format(pgm, min_cycle, sample_size, actual_sample_size, threads))
 
   fout.close()
   
-parse_log("es")
+parse_log("ppo")
