@@ -20,11 +20,11 @@ class HLSEnv(gym.Env):
 
     self.shrink = env_config.get('shrink', False)
     if self.shrink:
-      self.eff_pass_indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44] 
-      self.pass_len = len(self.eff_pass_indices) 
+      self.eff_pass_indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44]
+      self.pass_len = len(self.eff_pass_indices)
       self.eff_feat_indices = [5, 7, 8, 9, 11, 13, 15, 17, 18, 19, 20, 21, 22, 24, 26, 28, 30, 31, 32, 33, 34, 36, 37, 38, 40, 42, 46, 49, 52, 55]
-      self.feat_len = len(self.eff_feat_indices) 
-    
+      self.feat_len = len(self.eff_feat_indices)
+
     self.norm_obs = env_config.get('normalize', False)
     self.orig_norm_obs = env_config.get('orig_and_normalize', False)
     self.feature_type = env_config.get('feature_type', 'pgm') # pmg or act_hist
@@ -49,6 +49,8 @@ class HLSEnv(gym.Env):
     elif self.feature_type == 'act_hist' or self.feature_type == "act_hist_sparse":
       self.observation_space = Box(0.0,45,shape=(self.pass_len,),dtype = np.int32)
     elif self.feature_type == 'act_pgm':
+      self.observation_space = Box(0.0,1.0,shape=(45+56,),dtype = np.float32)
+    elif self.feature_type == 'hist_pgm':
       self.observation_space = Box(0.0,1.0,shape=(self.pass_len+self.feat_len,),dtype = np.float32)
     elif self.bandit:
       self.observation_space = Box(0.0,1.0,shape=(12,),dtype = np.float32)
@@ -57,7 +59,7 @@ class HLSEnv(gym.Env):
       raise
 
     self.prev_cycles = 10000000
-    self.O0_cycles = 10000000 
+    self.O0_cycles = 10000000
     self.prev_obs = None
     self.min_cycles = 10000000
     self.verbose = env_config.get('verbose',False)
@@ -118,7 +120,7 @@ class HLSEnv(gym.Env):
 
   def get_cycles(self, passes, sim=False):
     if self.shrink:
-      actual_passes = [self.eff_pass_indices[index] for index in passes] 
+      actual_passes = [self.eff_pass_indices[index] for index in passes]
     else:
       actual_passes =  passes
 
@@ -127,7 +129,7 @@ class HLSEnv(gym.Env):
 
   def get_rewards(self, diff=True, sim=False):
     if self.shrink:
-      actual_passes = [self.eff_pass_indices[index] for index in self.passes] 
+      actual_passes = [self.eff_pass_indices[index] for index in self.passes]
     else:
       actual_passes =  self.passes
     cycle, done = getcycle.getHWCycles(self.pgm_name, actual_passes, self.run_dir, sim=sim)
@@ -140,17 +142,24 @@ class HLSEnv(gym.Env):
         self.print_info("passes: {}".format(actual_passes))
         self.print_info("program: {} -- ".format(self.pgm_name)+" cycle: {}  -- prev_cycles: {}".format(cycle, self.prev_cycles))
         try:
-          cyc_dict = pickle.load(open('cycles2.pkl','rb'))
+          cyc_dict = pickle.load(open('cycles_chstone.pkl','rb'))
         except:
           cyc_dict = {}
-        cyc_dict[self.pgm_name] = cycle
-        output = open('cycles2.pkl', 'wb')
+        if self.pgm_name in cyc_dict:
+            if cyc_dict[self.pgm_name]['cycle']>cycle:
+                cyc_dict[self.pgm_name]['cycle'] = cycle
+                cyc_dict[self.pgm_name]['passes'] = self.passes
+        else:
+            cyc_dict[self.pgm_name] = {}
+            cyc_dict[self.pgm_name]['cycle'] = cycle
+            cyc_dict[self.pgm_name]['passes'] = self.passes
+        output = open('cycles_chstone.pkl', 'wb')
         pickle.dump(cyc_dict, output)
         output.close()
 
     if (cycle < self.min_cycles):
       self.min_cycles = cycle
-      self.best_passes = actual_passes 
+      self.best_passes = actual_passes
     if (diff):
       rew = self.prev_cycles - cycle
       self.prev_cycles = cycle
@@ -163,7 +172,7 @@ class HLSEnv(gym.Env):
     feats = getfeatures.run_stats(self.bc, self.run_dir)
 
     if self.shrink:
-      actual_feats = [feats[index] for index in self.eff_feat_indices] 
+      actual_feats = [feats[index] for index in self.eff_feat_indices]
     else:
       actual_feats = feats
     return actual_feats
@@ -218,7 +227,9 @@ class HLSEnv(gym.Env):
           obs = self.reset_actions+self.get_obs()
         elif self.feature_type == 'hist_pgm':
           self.act_hist = [0] * self.pass_len
-          obs = self.act_hist + self.get_obs
+          obs = self.get_obs()
+          normalizer = obs[-5]+1
+          obs = self.act_hist + [1.0*f/normalizer for f in obs]
         elif self.bandit:
           obs = [1] * 12
         else:
@@ -293,7 +304,10 @@ class HLSEnv(gym.Env):
         obs = self.passes + self.get_obs()
       elif self.feature_type == 'hist_pgm':
         self.act_hist[action] += 1
-        obs = self.act_hist + self.get_obs()
+        obs = self.get_obs()
+        normalizer = obs[-5]+1
+        obs = self.act_hist + [1.0*f/normalizer for f in obs]
+        reward = np.sign(reward) * math.log(abs(reward)+1)
       elif self.bandit:
         obs = self.passes
 
