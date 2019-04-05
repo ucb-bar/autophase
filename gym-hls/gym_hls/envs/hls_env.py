@@ -20,11 +20,12 @@ class HLSEnv(gym.Env):
 
     self.shrink = env_config.get('shrink', False)
     if self.shrink:
-      self.eff_pass_indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44]
-      self.pass_len = len(self.eff_pass_indices)
+      self.eff_pass_indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44] 
+      self.pass_len = len(self.eff_pass_indices) 
       self.eff_feat_indices = [5, 7, 8, 9, 11, 13, 15, 17, 18, 19, 20, 21, 22, 24, 26, 28, 30, 31, 32, 33, 34, 36, 37, 38, 40, 42, 46, 49, 52, 55]
-      self.feat_len = len(self.eff_feat_indices)
-
+      self.feat_len = len(self.eff_feat_indices) 
+    
+    self.binary_obs = env_config.get('binary_obs', False)
     self.norm_obs = env_config.get('normalize', False)
     self.orig_norm_obs = env_config.get('orig_and_normalize', False)
     self.feature_type = env_config.get('feature_type', 'pgm') # pmg or act_hist
@@ -48,10 +49,12 @@ class HLSEnv(gym.Env):
         self.observation_space = Box(0.0,1000000,shape=(self.feat_len,),dtype = np.int32)
     elif self.feature_type == 'act_hist' or self.feature_type == "act_hist_sparse":
       self.observation_space = Box(0.0,45,shape=(self.pass_len,),dtype = np.int32)
-    elif self.feature_type == 'act_pgm':
-      self.observation_space = Box(0.0,1.0,shape=(45+56,),dtype = np.float32)
-    elif self.feature_type == 'hist_pgm':
-      self.observation_space = Box(0.0,1.0,shape=(self.pass_len+self.feat_len,),dtype = np.float32)
+    elif self.feature_type == 'act_pgm' or self.feature_type == 'hist_pgm':
+      if self.orig_norm_obs:
+        feat_len = self.feat_len * 2
+      else:
+        feat_len = self.feat_len
+      self.observation_space = Box(0.0,1.0,shape=(self.pass_len+feat_len,),dtype = np.float32)
     elif self.bandit:
       self.observation_space = Box(0.0,1.0,shape=(12,),dtype = np.float32)
 
@@ -59,7 +62,7 @@ class HLSEnv(gym.Env):
       raise
 
     self.prev_cycles = 10000000
-    self.O0_cycles = 10000000
+    self.O0_cycles = 10000000 
     self.prev_obs = None
     self.min_cycles = 10000000
     self.verbose = env_config.get('verbose',False)
@@ -120,7 +123,7 @@ class HLSEnv(gym.Env):
 
   def get_cycles(self, passes, sim=False):
     if self.shrink:
-      actual_passes = [self.eff_pass_indices[index] for index in passes]
+      actual_passes = [self.eff_pass_indices[index] for index in passes] 
     else:
       actual_passes =  passes
 
@@ -175,6 +178,9 @@ class HLSEnv(gym.Env):
       actual_feats = [feats[index] for index in self.eff_feat_indices]
     else:
       actual_feats = feats
+     
+    if self.binary_obs:
+      actual_feats = [1 if feat > 0 else 0 for feat in actual_feats] 
     return actual_feats
 
   # reset() resets passes to []
