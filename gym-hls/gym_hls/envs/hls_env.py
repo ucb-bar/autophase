@@ -45,23 +45,23 @@ class HLSEnv(gym.Env):
     if self.feature_type == 'pgm':
         if self.orig_norm_obs:
             self.observation_space = Box(0.0,1.0,shape=(self.feat_len*2,),dtype = np.float32)
-      else:
+        else:
           self.observation_space = Box(0.0,1000000,shape=(self.feat_len,),dtype = np.int32)
     elif self.feature_type == 'act_hist' or self.feature_type == "act_hist_sparse":
         self.observation_space = Box(0.0,45,shape=(self.pass_len,),dtype = np.int32)
-   elif self.feature_type == 'act_pgm' or self.feature_type == 'hist_pgm':
-       if self.orig_norm_obs:
-           feat_len = self.feat_len * 2
+    elif self.feature_type == 'act_pgm' or self.feature_type == 'hist_pgm':
+      if self.orig_norm_obs:
+          feat_len = self.feat_len * 2
       else:
           feat_len = self.feat_len
       self.observation_space = Box(0.0,1.0,shape=(self.pass_len+feat_len,),dtype = np.float32)
-  elif self.bandit:
+    elif self.bandit:
       self.observation_space = Box(0.0,1.0,shape=(12,),dtype = np.float32)
 
-  else:
+    else:
       raise
 
-  self.prev_cycles = 10000000
+    self.prev_cycles = 10000000
     self.O0_cycles = 10000000
     self.prev_obs = None
     self.min_cycles = 10000000
@@ -80,7 +80,7 @@ class HLSEnv(gym.Env):
         self.run_dir = run_dir+'_p'+str(os.getpid())
     else:
         currentDT = datetime.datetime.now()
-      self.run_dir ="run-"+currentDT.strftime("%Y-%m-%d-%H-%M-%S-%f")+'_p'+str(os.getpid())
+        self.run_dir ="run-"+currentDT.strftime("%Y-%m-%d-%H-%M-%S-%f")+'_p'+str(os.getpid())
 
     if self.log_results:
         self.log_file = open(self.run_dir+".log","w")
@@ -94,7 +94,7 @@ class HLSEnv(gym.Env):
         shutil.copytree(pgm_dir, self.run_dir)
     if pgm_files:
         os.makedirs(self.run_dir)
-      for f in pgm_files:
+        for f in pgm_files:
           shutil.copy(f, self.run_dir)
 
     self.pre_passes_str= "-prune-eh -functionattrs -ipsccp -globalopt -mem2reg -deadargelim -sroa -early-cse -loweratomic -instcombine -loop-simplify"
@@ -114,15 +114,15 @@ class HLSEnv(gym.Env):
           shutil.rmtree(self.run_dir)
 
   def get_Ox_rewards(self, level=3, sim=False, clang_opt=False):
-      from gym_hls.envs.getox import getOxCycles
+    from gym_hls.envs.getox import getOxCycles
     cycle = getOxCycles(self.pgm_name, self.run_dir, level=level, clang_opt=clang_opt, sim=sim)
     return -cycle
 
-def print_info(self,message, end = '\n'):
+  def print_info(self,message, end = '\n'):
     sys.stdout.write('\x1b[1;34m' + message.strip() + '\x1b[0m' + end)
 
   def get_cycles(self, passes, sim=False):
-      if self.shrink:
+    if self.shrink:
           actual_passes = [self.eff_pass_indices[index] for index in passes]
     else:
         actual_passes =  passes
@@ -130,7 +130,7 @@ def print_info(self,message, end = '\n'):
     cycle, _ = getcycle.getHWCycles(self.pgm_name, actual_passes, self.run_dir, sim=sim)
     return cycle
 
-def get_rewards(self, diff=True, sim=False):
+  def get_rewards(self, diff=True, sim=False):
     if self.shrink:
         actual_passes = [self.eff_pass_indices[index] for index in self.passes]
     else:
@@ -161,17 +161,17 @@ def get_rewards(self, diff=True, sim=False):
         output.close()
 
     if (cycle < self.min_cycles):
-        self.min_cycles = cycle
+      self.min_cycles = cycle
       self.best_passes = actual_passes
     if (diff):
         rew = self.prev_cycles - cycle
-      self.prev_cycles = cycle
-  else:
+        self.prev_cycles = cycle
+    else:
       rew = -cycle
    # print("rew: {}".format(rew))
     return rew, done
 
-def get_obs(self,get_normalizer=False):
+  def get_obs(self,get_normalizer=False):
     feats = getfeatures.run_stats(self.bc, self.run_dir)
     normalizer=feats[-5] + 1
     if self.shrink:
