@@ -40,6 +40,8 @@ class HLSEnv(gym.Env):
       self.observation_space = Box(0.0,1.0,shape=(45,),dtype = np.float32)
     elif self.feature_type == 'act_pgm':
       self.observation_space = Box(0.0,1.0,shape=(45+56,),dtype = np.float32)
+    elif self.feature_type == 'hist_pgm':
+        self.observation_space = Box(0.0,1.0,shape=(45+56,),dtype = np.float32)
     elif self.bandit:
       self.observation_space = Box(0.0,1.0,shape=(12,),dtype = np.float32)
 
@@ -117,11 +119,18 @@ class HLSEnv(gym.Env):
         self.print_info("passes: {}".format(self.passes))
         self.print_info("program: {} -- ".format(self.pgm_name)+" cycle: {}  -- prev_cycles: {}".format(cycle, self.prev_cycles))
         try:
-          cyc_dict = pickle.load(open('cycles2.pkl','rb'))
+          cyc_dict = pickle.load(open('cycles_chstone.pkl','rb'))
         except:
           cyc_dict = {}
-        cyc_dict[self.pgm_name] = cycle
-        output = open('cycles2.pkl', 'wb')
+        if self.pgm_name in cyc_dict:
+            if cyc_dict[self.pgm_name]['cycle']>cycle:
+                cyc_dict[self.pgm_name]['cycle'] = cycle
+                cyc_dict[self.pgm_name]['passes'] = self.passes
+        else:
+            cyc_dict[self.pgm_name] = {}
+            cyc_dict[self.pgm_name]['cycle'] = cycle
+            cyc_dict[self.pgm_name]['passes'] = self.passes
+        output = open('cycles_chstone.pkl', 'wb')
         pickle.dump(cyc_dict, output)
         output.close()
 
@@ -188,7 +197,9 @@ class HLSEnv(gym.Env):
           obs = self.reset_actions+self.get_obs()
         elif self.feature_type == 'hist_pgm':
           self.act_hist = [0] * 45
-          obs = self.act_hist + self.get_obs
+          obs = self.get_obs()
+          normalizer = obs[-5]+1
+          obs = self.act_hist + [1.0*f/normalizer for f in obs]
         elif self.bandit:
           obs = [1] * 12
         else:
@@ -258,7 +269,10 @@ class HLSEnv(gym.Env):
         obs = self.passes + self.get_obs()
       elif self.feature_type == 'hist_pgm':
         self.act_hist[action] += 1
-        obs = self.act_hist + self.get_obs()
+        obs = self.get_obs()
+        normalizer = obs[-5]+1
+        obs = self.act_hist + [1.0*f/normalizer for f in obs]
+        reward = np.sign(reward) * math.log(abs(reward)+1)
       elif self.bandit:
         obs = self.passes
 

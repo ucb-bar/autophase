@@ -14,7 +14,6 @@ import math
 # Step: (prog) % #prog
 class HLSMultiEnv(gym.Env):
   def __init__(self, env_config):
-
     bm_name = env_config.get('bm_name', 'chstone')
     self.num_pgms = env_config.get('num_pgms', 6)
     self.norm_obs = env_config.get('normalize', False)
@@ -27,6 +26,8 @@ class HLSMultiEnv(gym.Env):
     elif self.feature_type == 'act_pgm':
         self.observation_space = Box(0.0,1.0,shape=(45+56,),dtype = np.float32)
         self.action_space=Tuple([Discrete(len(self.action_meaning))]*45)
+    elif self.feature_type == 'hist_pgm':
+        self.observation_space = Box(0.0,1.0,shape=(45+56,),dtype = np.float32)
     else:
       self.observation_space = Box(0.0,1.0,shape=(56,),dtype = np.float32)
 
@@ -47,7 +48,9 @@ class HLSMultiEnv(gym.Env):
         env_conf['verbose'] = env_config.get('verbose',False)
         env_conf['orig_and_normalize'] = self.orig_norm_obs
         env_conf['log_obs_reward']=env_config.get('log_obs_reward',False)
+        env_conf['log_results'] = env_config.get('log_results',False)
         self.envs.append(HLSEnv(env_conf))
+
     elif bm_name == "random":
       from gym_hls.envs.random_bm import get_random
       bms = get_random(N=self.num_pgms)
@@ -62,6 +65,7 @@ class HLSMultiEnv(gym.Env):
         env_conf['verbose'] = env_config.get('verbose',False)
         env_conf['orig_and_normalize'] = self.orig_norm_obs
         env_conf['log_obs_reward']=env_config.get('log_obs_reward',False)
+        env_conf['log_results'] = env_config.get('log_results',False)
         self.envs.append(HLSEnv(env_conf))
     else:
       raise

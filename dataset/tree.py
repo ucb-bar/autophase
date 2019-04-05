@@ -11,12 +11,11 @@ from gym_hls.envs.hls_multi_env import HLSMultiEnv
 from gym_hls.envs.getcycle import getPasses
 features = ["# of BB where total args for phi nodes > 5", "# of BB where total args for phi nodes is [1, 5]", "# of BB's with 1 predecessor", "# of BB's with 1 predecessor and 1 successor", "# of BB's with 1 predecessor and 2 successors", "# of BB's with 1 successor", "# of BB's with 2 predecessors", "# of BB's with 2 predecessors and 1 successor", "# of BB's with 2 predecessors and successors", "# of BB's with 2 successors", "# of BB's with >2 predecessors", "# of BB's with Phi node # in range (0, 3]", "# of BB's with more than 3 Phi nodes", "# of BB's with no Phi nodes", "# of Phi-nodes at beginning of BB", "# of branches", "# of calls that return an int", "# of critical edges", "# of edges", "# of occurrences of 32-bit integer constants", "# of occurrences of 64-bit integer constants", "# of occurrences of constant 0", "# of occurrences of constant 1", "# of unconditional branches", "Binary operations with a constant operand", "Number of AShr insts", "Number of Add insts", "Number of Alloca insts", "Number of And insts", "Number of BB's with instructions between [15, 500]", "Number of BB's with less than 15 instructions", "Number of BitCast insts", "Number of Br insts", "Number of Call insts", "Number of GetElementPtr insts", "Number of ICmp insts", "Number of LShr insts", "Number of Load insts", "Number of Mul insts", "Number of Or insts", "Number of PHI insts", "Number of Ret insts", "Number of SExt insts", "Number of Select insts", "Number of Shl insts", "Number of Store insts", "Number of Sub insts", "Number of Trunc insts", "Number of Xor insts", "Number of ZExt insts", "Number of basic blocks", "Number of instructions (of all types)", "Number of memory instructions", "Number of non-external functions", "Total arguments to Phi nodes", "Unary"]
 opt_passes_str = "-correlated-propagation -scalarrepl -lowerinvoke -strip -strip-nondebug -sccp -globalopt -gvn -jump-threading -globaldce -loop-unswitch -scalarrepl-ssa -loop-reduce -break-crit-edges -loop-deletion -reassociate -lcssa -codegenprepare -memcpyopt -functionattrs -loop-idiom -lowerswitch -constmerge -loop-rotate -partial-inliner -inline -early-cse -indvars -adce -loop-simplify -instcombine -simplifycfg -dse -loop-unroll -lower-expect -tailcallelim -licm -sink -mem2reg -prune-eh -functionattrs -ipsccp -deadargelim -sroa -loweratomic -terminate".split()
-
-
+print(features[-5])
 all_clfs={}
-#datasets = ['train_chstone_pgm.pkl','train_chstone_act.pkl','train_rand.pkl']
+#datasets = ['train_chstone_pgm.pkl','train_chstone_act.pkl','train_rand.pkl','train_rand_act.pkl']
 num_passes = 45
-datasets = ['train_rand.pkl']
+datasets = ['train_rand_act.pkl']
 important_passes=[]
 for dataset in datasets:
     clf = {}
@@ -40,15 +39,16 @@ for dataset in datasets:
     bad_passes = []
     good_features=[]
     good_passes=[]
+    '''
     for i in range(56):
         if np.max(npimp[:,i])<0.05:
-            bad_features.append(i)
+            bad_features.append([i,features[i]])
         else:
-            good_features.append(i)
+            good_features.append([i,features[i]])
     good_couples=[]
     for i in range(45):
         if np.max(npimp[i,:])<0.05:
-            bad_passes.append(i)
+            bad_passes.append([i,opt_passes_str[i]])
         else:
             good_passes.append(i)
         for j in range(56):
@@ -56,24 +56,32 @@ for dataset in datasets:
                 good_couples.append([i,j,opt_passes_str[i],features[j]])
     print(dataset)
     print('bad_features',bad_features)
-    print('bad_passes',bad_passes)
     print('good_features',good_features)
-    print('good_passes',good_passes)
     print('good pass, feature couples', good_couples)
+    '''
+    print('good_passes',good_passes)
+    print('bad_passes',bad_passes)
     fig1=plt.figure(1,figsize=(9,9))
     ax1=fig1.add_subplot(1,1,1)
     ax1.xaxis.tick_top()
     ax1.xaxis.set_label_position('top')
+    for label in (ax1.get_xticklabels() + ax1.get_yticklabels()):
+        label.set_fontname('Arial')
+        label.set_fontweight('bold')
+        label.set_fontsize('22')
     imtplot1=plt.imshow(importances)
-    #plt.rc('font', size=14)
-    #plt.rc('axes',titlesize=12)
+    plt.rc('font', size=22)
+    plt.rc('font',weight='bold')
+    plt.rc('axes',titlesize=20)
     #plt.rc('axes',labelsize=12)
     #plt.rc('xtick', labelsize=1)
     #plt.rc('ytick',labelsize=1)
+    axis_font = {'fontname':'Arial', "weight":'bold','size':'24'}
     plt.colorbar()
-    plt.xlabel('feature')
-    plt.ylabel('pass')
-    plt.title('importance',y=1.14)
+    plt.grid()
+    plt.xlabel('Feature',**axis_font)
+    plt.ylabel('Pass',**axis_font)
+    #plt.title('importance',y=1.14)
     plt.show()
 
 
