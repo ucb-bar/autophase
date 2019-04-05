@@ -14,22 +14,32 @@ import math
 # Step: (prog) % #prog
 class HLSMultiEnv(gym.Env):
   def __init__(self, env_config):
+
+    self.pass_len = 45
+    self.feat_len = 56
     bm_name = env_config.get('bm_name', 'chstone')
     self.num_pgms = env_config.get('num_pgms', 6)
     self.norm_obs = env_config.get('normalize', False)
     self.orig_norm_obs = env_config.get('orig_and_normalize', False)
     self.feature_type = env_config.get('feature_type','pgm')
-    self.action_space = Discrete(45)
+    self.shrink = env_config.get('shrink', False)
+    if self.shrink:
+      self.eff_pass_indices = [1,7,11,12,14,15,23,24,26,28,30,31,32,33,38,43 ]#[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44]
+      self.pass_len = len(self.eff_pass_indices)
+      self.eff_feat_indices = [5, 7, 8, 9, 11, 13, 15, 17, 18, 19, 20, 21, 22, 24, 26, 28, 30, 31, 32, 33, 34, 36, 37, 38, 40, 42, 46, 49, 52, 55]
+      self.feat_len = len(self.eff_feat_indices)
+
+    self.action_space = Discrete(self.pass_len)
     self.action_meaning = [-1,0,1]
     if self.orig_norm_obs:
-        self.observation_space = Box(0.0,1.0,shape=(56*2,),dtype = np.float32)
+        self.observation_space = Box(0.0,1.0,shape=(self.feat_len*2,),dtype = np.float32)
     elif self.feature_type == 'act_pgm':
-        self.observation_space = Box(0.0,1.0,shape=(45+56,),dtype = np.float32)
-        self.action_space=Tuple([Discrete(len(self.action_meaning))]*45)
+        self.observation_space = Box(0.0,1.0,shape=(self.pass_len+self.feat_len,),dtype = np.float32)
+        self.action_space=Tuple([Discrete(len(self.action_meaning))]*self.pass_len)
     elif self.feature_type == 'hist_pgm':
-        self.observation_space = Box(0.0,1.0,shape=(45+56,),dtype = np.float32)
+        self.observation_space = Box(0.0,1.0,shape=(self.pass_len+self.feat_len,),dtype = np.float32)
     else:
-      self.observation_space = Box(0.0,1.0,shape=(56,),dtype = np.float32)
+      self.observation_space = Box(0.0,1.0,shape=(self.feat_len,),dtype = np.float32)
 
     self.envs = []
     self.idx = np.random.randint(self.num_pgms)
@@ -49,6 +59,7 @@ class HLSMultiEnv(gym.Env):
         env_conf['orig_and_normalize'] = self.orig_norm_obs
         env_conf['log_obs_reward']=env_config.get('log_obs_reward',False)
         env_conf['log_results'] = env_config.get('log_results',False)
+        env_conf['shrink'] = self.shrink
         self.envs.append(HLSEnv(env_conf))
 
     elif bm_name == "random":
@@ -66,6 +77,7 @@ class HLSMultiEnv(gym.Env):
         env_conf['orig_and_normalize'] = self.orig_norm_obs
         env_conf['log_obs_reward']=env_config.get('log_obs_reward',False)
         env_conf['log_results'] = env_config.get('log_results',False)
+        env_conf['shrink'] = self.shrink
         self.envs.append(HLSEnv(env_conf))
     else:
       raise

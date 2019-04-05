@@ -20,7 +20,7 @@ class HLSEnv(gym.Env):
 
     self.shrink = env_config.get('shrink', False)
     if self.shrink:
-      self.eff_pass_indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44]
+      self.eff_pass_indices = [1,7,11,12,14,15,23,24,26,28,30,31,32,33,38,43 ]#[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44]
       self.pass_len = len(self.eff_pass_indices)
       self.eff_feat_indices = [5, 7, 8, 9, 11, 13, 15, 17, 18, 19, 20, 21, 22, 24, 26, 28, 30, 31, 32, 33, 34, 36, 37, 38, 40, 42, 46, 49, 52, 55]
       self.feat_len = len(self.eff_feat_indices)
@@ -49,7 +49,7 @@ class HLSEnv(gym.Env):
     elif self.feature_type == 'act_hist' or self.feature_type == "act_hist_sparse":
       self.observation_space = Box(0.0,45,shape=(self.pass_len,),dtype = np.int32)
     elif self.feature_type == 'act_pgm':
-      self.observation_space = Box(0.0,1.0,shape=(45+56,),dtype = np.float32)
+      self.observation_space = Box(0.0,1.0,shape=(self.pass_len+self.feat_len,),dtype = np.float32)
     elif self.feature_type == 'hist_pgm':
       self.observation_space = Box(0.0,1.0,shape=(self.pass_len+self.feat_len,),dtype = np.float32)
     elif self.bandit:
@@ -168,14 +168,17 @@ class HLSEnv(gym.Env):
    # print("rew: {}".format(rew))
     return rew, done
 
-  def get_obs(self):
+  def get_obs(self,get_normalizer=False):
     feats = getfeatures.run_stats(self.bc, self.run_dir)
-
+    normalizer=feats[-5] + 1
     if self.shrink:
       actual_feats = [feats[index] for index in self.eff_feat_indices]
     else:
       actual_feats = feats
-    return actual_feats
+    if not get_normalizer:
+        return actual_feats
+    else:
+        return actual_feats,normalizer
 
   # reset() resets passes to []
   # reset(init=[1,2,3]) resets passes to [1,2,3]
@@ -227,8 +230,7 @@ class HLSEnv(gym.Env):
           obs = self.reset_actions+self.get_obs()
         elif self.feature_type == 'hist_pgm':
           self.act_hist = [0] * self.pass_len
-          obs = self.get_obs()
-          normalizer = obs[-5]+1
+          obs,normalizer = self.get_obs(get_normalizer=True)
           obs = self.act_hist + [1.0*f/normalizer for f in obs]
         elif self.bandit:
           obs = [1] * 12
@@ -304,10 +306,11 @@ class HLSEnv(gym.Env):
         obs = self.passes + self.get_obs()
       elif self.feature_type == 'hist_pgm':
         self.act_hist[action] += 1
-        obs = self.get_obs()
-        normalizer = obs[-5]+1
+        obs,normalizer = self.get_obs(get_normalizer=True)
         obs = self.act_hist + [1.0*f/normalizer for f in obs]
         reward = np.sign(reward) * math.log(abs(reward)+1)
+        if reward<0 and action in self.passes[:-1]:
+            reward = reward-10
       elif self.bandit:
         obs = self.passes
 
