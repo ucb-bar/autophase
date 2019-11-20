@@ -3,7 +3,7 @@ from gym_hls.envs.utils import lsFiles
 from os.path import isfile, join
 import pickle
 
-def get_random(path="/scratch/qijing.huang/random_pgm/dataset", pkl_path='/scratch/ameerh/AutoPhase/gym-hls/gym_hls/envs/', N=None):
+def get_random(path="/scratch/qijing.huang/random_pgm/dataset", pkl_path='/scratch/qijing.huang/AutoPhase/gym-hls/gym_hls/envs/', N=None, pgm_list=None):
   import os
   cwd = os.getcwd()
   pkl_file = open(join(pkl_path, 'random_pgms.pkl'), 'rb')
@@ -11,8 +11,11 @@ def get_random(path="/scratch/qijing.huang/random_pgm/dataset", pkl_path='/scrat
   pkl_file.close()
 
   interval = [0, 1000, 5000, 10000, 50000, 100000]
-  pgm_list = buckets[2] # 5000~10000
-  pgms = list(map(lambda x: x[0], pgm_list))
+  if pgm_list is None:
+    pgm_list = buckets[2] # 5000~10000
+    pgms = list(map(lambda x: x[0], pgm_list))
+  else: 
+    pgms = list(map(lambda x: x+'.c', pgm_list))
 
   aux_files = lsFiles(join(path, 'skeleton'))
   random_list = []
@@ -25,3 +28,4 @@ def get_random(path="/scratch/qijing.huang/random_pgm/dataset", pkl_path='/scrat
     random_list.append((pgms[i], files))
   return random_list
 
+print(len(get_random()))
