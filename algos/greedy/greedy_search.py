@@ -7,14 +7,12 @@ import pickle
 import numpy as np
 
 def geo_mean(iterable):
-    a = np.array(iterable).astype(float)
+    a = np.array(iterable).astype(np.float64)
     prod = a.prod()
     prod = -prod if prod < 0 else prod
     return prod**(1.0/len(a))
-
    
-NUM_PASSES = 45
-
+NUM_PASSES = 16
 
 def get_lookup_rank(envs): 
   cycles = np.zeros(NUM_PASSES)
@@ -117,7 +115,8 @@ def runInsertion(envs, cur_passes, new_pass, pool, indices):
     #_, reward = env.reset(init=test_passes)
     rews = pool.map(lambda env: env.get_cycles(test_passes), envs)
     sample_count += len(envs) 
-    reward = -geo_mean(rews)
+    #reward = -geo_mean(rews)
+    reward = -sum(rews)
 
     wall_time = -reward
     pass_record.append(test_passes)
@@ -157,42 +156,70 @@ def in_test_single_pgm(N=1):
       print("Compile Time: %d"%(int(compile_time)))
       fout.write("{}|{}|{}|{}|{}".format(pgm, timings[0], compile_time, sample_size, passes[0]))
 
-def in_test_pgm_group(N=1):
-  test_len = [12]
-  for length in test_len:
-    print("Program: {}".format(pgm))
-    #env=Env(pgm, path)  
-    from gym_hls.envs.chstone_bm import get_all9
-    bms = get_all9() 
+def in_rand_pgm(num_pgms=1, N=3):
+  from gym_hls.envs.random_bm import get_random
+  bms = get_random(N=num_pgms)
+  length = 45
 
+  for i, bm in enumerate(bms):
     envs = []
-    i = 0
-    for pgm, path in bms:
-      env_config = {
-        'pgm':pgm,
-        'pgm_dir':path,
-        'run_dir':'run_'+pgm.replace(".c",""),
-        'normalize':False,
-        'orig_and_normalize':False,
-        'log_obs_reward':False,
-        'verbose':False,
-        }
-
-      envs.append(Env(env_config))
-      i = i+1
+    pgm, files= bm
+    print("Program: {}".format(pgm))
+    env_configs = {}
+    env_configs['pgm'] = pgm 
+    env_configs['pgm_files'] = files
+    env_configs['run_dir'] = 'run_'+pgm.replace(".c","")
+    #env_configs['feature_type'] = 'act_hist'
+    env_configs['verbose'] = True
+    env_configs['log_results'] = True
+    envs.append(Env(env_configs))
 
     begin = time.time()
-    (passes, timings, sample_size) = runInsertionN(envs, N, length=length)
+    (passes, timings, sample_size) = runInsertionN(envs, N, length=length, sort=True)
     end = time.time()
-    #pickle.dump(record, lb_file)
     print("Best individuals are: {}".format(passes[0]))
     print("Cycles: {}".format(timings[0]))
     compile_time =end - begin
     print("Compile Time: %d"%(int(compile_time)))
-    fout.write("{}|{}|{}|{}|{}\n".format("get_all9", timings[0], compile_time, sample_size, passes[0]))
+    fout.write("{}|{}|{}|{}|{}".format(pgm, timings[0], compile_time, sample_size, passes[0]))
 
+def in_test_pgm_group(bms, N=1, test_len=[16]):
+  with open("in_test_pgm_group.txt", "w") as fout: 
+    fout.write("Benchmark | Cycle Counts | Algorithm Runtime (s)| Sample Sizes | Passes \n")
 
+    for length in test_len:
+      envs = []
+      i = 0
+      for pgm, path in bms:
+        env_config = {
+          'pgm':pgm,
+          'pgm_files':path,
+          'run_dir':'run_'+pgm.replace(".c",""),
+          'normalize':False,
+          'orig_and_normalize':False,
+          'log_obs_reward':False,
+          'verbose':False,
+          'shrink':True,
+          }
+
+        envs.append(Env(env_config))
+        i = i+1
+
+      begin = time.time()
+      (passes, timings, sample_size) = runInsertionN(envs, N, length=length)
+      end = time.time()
+      #pickle.dump(record, lb_file)
+      print("Best individuals are: {}".format(passes[0]))
+      print("Cycles: {}".format(timings[0]))
+      compile_time = end - begin
+      print("Compile Time: %d"%(int(compile_time)))
+      fout.write("{}|{}|{}|{}|{}\n".format("test_pgm_group", timings[0], compile_time, sample_size, passes[0]))
 
 if __name__== "__main__":
-  in_test_single_pgm()
+
+    from gym_hls.envs.random_bm import get_random
+    num_pgms = 100
+    bms = get_random(N=num_pgms)
+    #print(len(bms))
+    in_test_pgm_group(bms, 1, [16])
 
