@@ -19,5 +19,5 @@ This framework takes the input of a program compiles into LLVM IR. The neural ne
 - cd AutoPhase/gym-hls/
 - pip install -e .
 - cd ../algos/rl
-- python  ppo_ray_multi.py
+- python  ppo_ray.py
 ```
