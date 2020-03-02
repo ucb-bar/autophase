@@ -1,6 +1,7 @@
 # Returns list of (pgm, pgm_dir) tuple
 # Returns list of (pgm, pmg_files) tuple
 from gym_hls.envs.utils import lsFiles
+import os
 
 def get_random(path="/scratch/qijing.huang/random_pgm/dataset", N=10):
     pgms = lsFiles(path)
@@ -9,8 +10,9 @@ def get_random(path="/scratch/qijing.huang/random_pgm/dataset", N=10):
       random_list.append(pgms[i], path) 
     print(random_list)
     return random_list 
-   
-def get_chstone(path= "/scratch/qijing.huang/LegUp/legup-4.0/examples/chstone/", N=12, use_dir=True):
+ 
+chstone_path = os.environ["LEGUP_PATH"]+"/examples/chstone/"  
+def get_chstone(path= chstone_path, N=12, use_dir=True):
   chstone = [
  ( "adpcm","adpcm"),
  ( "aes","aes"),
@@ -35,7 +37,7 @@ def get_chstone(path= "/scratch/qijing.huang/LegUp/legup-4.0/examples/chstone/",
       chstone_list.append((value+".c", files))
   return chstone_list[:N]
 
-def get_others(path="/scratch/qijing.huang/LegUp/legup-4.0/examples/", use_dir=True):
+def get_others(path= os.environ["LEGUP_PATH"] + "/examples/", use_dir=True):
   others = [
   ("fir" ,"fir"),
   ("dhrystone" ,"dhry"),

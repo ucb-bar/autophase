@@ -1,5 +1,6 @@
 import re
 import subprocess
+import os
 
 # Available LLVM optimizatons
 # tailduplicate, simplify-libcalls, -block-placement  
@@ -52,8 +53,7 @@ makefile_str= """
 NAME= test_c_code
 NO_OPT=1
 CUSTOM_OPT=1
-EXTRA_OPT_FLAGS = opt_passes
-LEVEL = /scratch/qijing.huang/LegUp/legup-4.0/examples
+EXTRA_OPT_FLAGS = opt_passes\n""" + "LEVEL = "+ os.environ["LEGUP_PATH"] + "/examples"+"""
 include $(LEVEL)/Makefile.common
 """
 def qw(s):
