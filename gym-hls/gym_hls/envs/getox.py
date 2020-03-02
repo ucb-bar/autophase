@@ -1,18 +1,18 @@
 import re
 import subprocess
+import os
 
 # Gather -O3 generated results
 #makefile_str= """
 #NAME= test_c_code
-#LEVEL = /scratch/qijing.huang/LegUp/legup-4.0/examples
+#LEVEL = /home/legup/legup-4.0/examples
 #include $(LEVEL)/Makefile.common
 #"""
 makefile_str= """
 NAME= test_c_code
 NO_OPT=clang_opt
 CUSTOM_OPT=1
-EXTRA_OPT_FLAGS = test_flag 
-LEVEL = /scratch/qijing.huang/LegUp/legup-4.0/examples
+EXTRA_OPT_FLAGS = test_flag\n"""+"LEVEL = " + os.environ["LEGUP_PATH"] + "/examples"+"""
 include $(LEVEL)/Makefile.common
 """
 
