@@ -18,6 +18,7 @@ This framework takes the input of a program compiles into LLVM IR. The neural ne
 - git clone https://github.com/hqjenny/AutoPhase
 - cd AutoPhase/gym-hls/
 - pip install -e .
+- export LEGUP_PATH=$(realpath "/path/to/legup-4.0")
 - cd ../algos/rl
 - python  ppo_ray.py
 ```
