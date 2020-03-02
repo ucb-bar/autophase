@@ -11,8 +11,8 @@ def get_random(path="/scratch/qijing.huang/random_pgm/dataset", N=10):
     print(random_list)
     return random_list 
  
-legup_path = os.environ["LEGUP_PATH"]+"/examples/chstone/"  
-def get_chstone(path= legup_path, N=12, use_dir=True):
+chstone_path = os.environ["LEGUP_PATH"]+"/examples/chstone/"  
+def get_chstone(path= chstone_path, N=12, use_dir=True):
   chstone = [
  ( "adpcm","adpcm"),
  ( "aes","aes"),
