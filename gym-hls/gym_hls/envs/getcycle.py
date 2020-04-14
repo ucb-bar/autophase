@@ -57,19 +57,59 @@ EXTRA_OPT_FLAGS = opt_passes\n""" + "LEVEL = "+ os.environ["LEGUP_PATH"] + "/exa
 include $(LEVEL)/Makefile.common
 """
 def qw(s):
+    """
+    Examples :
+        >>> print(qw(“ -correlated-propagation -scalarrepl -lowerinvoke”))
+        (-correlated-propagation, -scalarrepl, -lowerinvoke)
+
+    Args:
+        s (str):  s is a list of all the possible passes that can be used (the passes shoul dvbe separated by whitespace).
+    Returns:
+	    Returns a tuple of strings where each element is a pass(used for optimization) from s.
+    """
         return tuple(s.split())
 
 def countPasses():
-    count=len(qw(opt_passes_str))
-    return count
-    
+    """
+    Examples :
+        >>> print(countPasses())
+        47
+
+    Returns:
+	    Returns the number of passes that opt_passes_str contains (opt_passes_str is declared and assigned 
+        count=len(qw(opt_passes_str))
+        return count
+    """
 # Get a tuple of optimizations
 def getPasses(opt_indice):
+    """
+    Examples :
+        >>> print(getPasses([0,1]))
+        (-correlated-propagation, -scalarrepl)
+
+    Args:
+        Opt_indice (list): Opt_indice is a list of integers that indicates the elements(indices) to select from opt_passes
+
+
+    Returns:
+	    Returns a tuple of optimizations from opt_passes that contains the best performing passes.
+    """
     return map((lambda x: opt_passes[x]), opt_indice)
 
 opt_passes = qw(opt_passes_str)
 
 def passes2indice(passes):
+    """
+    Examples :
+        >>> print(passes2indice(“ -correlated-propagation hi -scalarrepl -lowerinvoke blob”))
+        (-correlated-propagation, -scalarrepl, -lowerinvoke)
+                 
+    Args:
+        passes (str): string of passes separated by whitespaces.
+
+    Returns:
+	    Returns a list of all the optimization passes given in the string parameter passes if they exist in opt_passes (which is the list of passes we defined in this class).
+    """
     indices = []
     passes = qw(passes)
     for passs in passes:
@@ -81,6 +121,19 @@ def passes2indice(passes):
     return indices
 
 def getHWCycles(c_code, opt_indice, path=".", sim=False):
+    """
+    Examples :
+        >>> print(getHWCycles(c_code, [“-correlated-propagation”, “-scalarrepl”, “-lowerinvoke”])
+        (5500, True)
+
+    Args:
+        c_code (str): The file name of a code written in C programming language
+        Opt_indice (tuple?, optional): opt_indice indicates the elements(indices) to select from opt_passes. Defaults to current directory.
+        sim (bool, optional): sim should be True if you want the arguments used to launch the process to be “make clean p v -s”, or sim should be False if you want the argument used to launch the process to be "make clean accelerationCycle -s". Defaults to False
+
+    Returns:
+	    Returns a tuple where the first element is an integer that represents the time it takes for hardware to run the code using the given passes.
+    """
     #print(len(opt_passes))
     ga_seq = getPasses(opt_indice)
     ga_seq_str = " ".join(ga_seq)
