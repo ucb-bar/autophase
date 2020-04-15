@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+'''
+
+Patch to the ray rollout.py to make it work with our config def.
+cp rollout.py $PATH_TO_RAY/ray/rllib/rollout.py 
+
+'''
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
