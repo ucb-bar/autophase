@@ -4,6 +4,21 @@ from os.path import isfile, join
 import pickle
 
 def get_random(path="/scratch/qijing.huang/random_pgm/dataset", pkl_path='/scratch/qijing.huang/AutoPhase/gym-hls/gym_hls/envs/', N=None, pgm_list=None):
+  """
+  Examples :
+    >>> print(random_bm([“blob”]))
+    (“blob.c”, [ “/scratch/qijing.huang/random_pgm/dataset/blob.c", “/scratch/qijing.huang/random_pgm/dataset/skeleton/fl.txt”] )
+
+  Args:
+    path (str, optional): path of the directory that contains the benchmarks we are interested in. Defaults to "/scratch/qijing.huang/random_pgm/dataset".
+    pkl_path (str, optional): pkl_path is the path of the gym_hls/envs directory. Defaults to '/scratch/qijing.huang/AutoPhase/gym-hls/gym_hls/envs/'.
+    N (int, optional): N is the number of programs from the pgm_list to chose from.
+    pgm_list (list, optional): pgm_list is a list of strings that contain programs (benchmarks).
+  Returns:
+    Returns a list of tuples where the first element of the tuple contains the name of the program and the second element of the tuple contains the path 
+    (the given parameter path + program_name) of the program and the path to the files inside the skeleton directory.
+  """
+
   import os
   cwd = os.getcwd()
   pkl_file = open(join(pkl_path, 'random_pgms.pkl'), 'rb')

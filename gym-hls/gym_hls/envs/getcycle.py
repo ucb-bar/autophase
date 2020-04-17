@@ -57,88 +57,147 @@ EXTRA_OPT_FLAGS = opt_passes\n""" + "LEVEL = "+ os.environ["LEGUP_PATH"] + "/exa
 include $(LEVEL)/Makefile.common
 """
 def qw(s):
-        return tuple(s.split())
+  """
+  Examples :
+    >>> print(qw(“ -correlated-propagation -scalarrepl -lowerinvoke”))
+    (-correlated-propagation, -scalarrepl, -lowerinvoke)
+
+  Args:
+    s (str):  s is a list of all the possible passes that can be used (the passes shoul dvbe separated by whitespace).
+
+  Returns:
+    Returns a tuple of strings where each element is a pass(used for optimization) from s.
+  """
+  return tuple(s.split())
 
 def countPasses():
-    count=len(qw(opt_passes_str))
-    return count
+  """
+  Examples :
+    >>> print(countPasses())
+    47
+
+  Returns:
+    Returns the number of passes that opt_passes_str contains (opt_passes_str is declared and assigned at the beginning of this class and contains 47 passes).
+  """
+
+  count=len(qw(opt_passes_str))
+  return count
     
 # Get a tuple of optimizations
 def getPasses(opt_indice):
-    return map((lambda x: opt_passes[x]), opt_indice)
+  """
+  Examples :
+    >>> print(getPasses([0,1]))
+    (-correlated-propagation, -scalarrepl)
+
+  Args:
+    Opt_indice (list, optional): opt_indice is a list of integers where each element represents the index of the pass to grab from opt_passes list. 
+
+  Returns:
+    Returns a tuple of optimizations from opt_passes.
+  """
+  return map((lambda x: opt_passes[x]), opt_indice)
 
 opt_passes = qw(opt_passes_str)
 
 def passes2indice(passes):
-    indices = []
-    passes = qw(passes)
-    for passs in passes:
-      for i in range(len(opt_passes)):
-        if passs == opt_passes[i]:
-          indices.append(i)
-          break
-    #print(indices)
-    return indices
+  """
+  Examples :
+    >>> print(passes2indice(“ -correlated-propagation hi -scalarrepl -lowerinvoke blob”))
+    (-correlated-propagation, -scalarrepl, -lowerinvoke)
+                 
+  Args:
+    passes (str): string of passes separated by whitespaces.
+
+  Returns:
+    Returns a list of all the optimization passes given in the string parameter passes if they exist in opt_passes (which is the list of passes we defined in this class).
+  """
+  indices = []
+  passes = qw(passes)
+  for passs in passes:
+    for i in range(len(opt_passes)):
+      if passs == opt_passes[i]:
+        indices.append(i)
+        break
+  #print(indices)
+  return indices
 
 def getHWCycles(c_code, opt_indice, path=".", sim=False):
+  """
+  Examples :
+    >>> print(getHWCycles(c_code, [“-correlated-propagation”, “-scalarrepl”, “-lowerinvoke”]))
+    (55, True)
+
+  Args:
+    c_code (str): The file name of a code written in C programming language
+    Opt_indice (list, optional): opt_indice is a list of integers where each element represents the index of the pass to grab from opt_passes list. 
+    path (str): This parameter represents the path of the directory we are interested in. Defaults to current path.
+    sim (bool, optional): sim should be True if you want the arguments used to launch the process to be “make clean p v -s”, or sim should be False 
+      if you want the argument used to launch the process to be "make clean accelerationCycle -s". Defaults to False
+
+  Returns:
+    Returns a tuple where the first element is an integer that represents the number of cycle counts it took to run the synthesized circuit 
+    (the second element doesn’t matter).
+
+  """
     #print(len(opt_passes))
-    ga_seq = getPasses(opt_indice)
-    ga_seq_str = " ".join(ga_seq)
-    #print("Passes: %s"%ga_seq_str)
+  ga_seq = getPasses(opt_indice)
+  ga_seq_str = " ".join(ga_seq)
+  #print("Passes: %s"%ga_seq_str)
 
-    makefile_new = makefile_str.replace("test_c_code", c_code) 
-    makefile_new = makefile_new.replace("opt_passes", ga_seq_str) 
-    #print(makefile_new)
-    # Update the Makefile 
-    f = open( path+"/Makefile","w")
-    f.write(makefile_new)
-    f.close()    
-    done = False
-    # Run HLS
-    #proc = subprocess.Popen(["make accelerationCycle -s"], stdout=subprocess.PIPE, shell=True)
-    if sim:
-      proc = subprocess.Popen(["make clean p v -s"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=path)
-      (out, err) = proc.communicate()
-      print(out)
-      #print(err)
-      p = re.compile(r".*Cycles:\s+(\d+)", re.DOTALL)
-      m = re.match(p, out.decode("utf-8") )
-      if m:
-          hw_cycle = m.group(1)
-          if int(hw_cycle) == 0:
-            hw_cycle = 10000000
-      else:
-          #print ("NM")
-          hw_cycle = 10000000 # problematic 
+  makefile_new = makefile_str.replace("test_c_code", c_code) 
+  makefile_new = makefile_new.replace("opt_passes", ga_seq_str) 
+  #print(makefile_new)
+  # Update the Makefile 
+  f = open( path+"/Makefile","w")
+  f.write(makefile_new)
+  f.close()    
+  done = False
+  # Run HLS
+  #proc = subprocess.Popen(["make accelerationCycle -s"], stdout=subprocess.PIPE, shell=True)
+  if sim:
+    proc = subprocess.Popen(["make clean p v -s"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=path)
+    (out, err) = proc.communicate()
+    print(out)
+    #print(err)
+    p = re.compile(r".*Cycles:\s+(\d+)", re.DOTALL)
+    m = re.match(p, out.decode("utf-8") )
+    if m:
+        hw_cycle = m.group(1)
+        if int(hw_cycle) == 0:
+          hw_cycle = 10000000
+    else:
+        #print ("NM")
+        hw_cycle = 10000000 # problematic 
 
-    else: 
-      proc = subprocess.Popen(["make clean accelerationCycle -s"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=path)
-      (out, err) = proc.communicate()
-      #print(err)
-      #if (err):
-      #    print (err)
-      #    f = open(c_code+"err.trace", "w")
-      #    f.write(err)
-      #    f.close()
+  else: 
+    proc = subprocess.Popen(["make clean accelerationCycle -s"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=path)
+    (out, err) = proc.communicate()
+    #print(err)
+    #if (err):
+    #    print (err)
+    #    f = open(c_code+"err.trace", "w")
+    #    f.write(err)
+    #    f.close()
 
-      #print "program output:", out
-      #print "program error:", err
+    #print "program output:", out
+    #print "program error:", err
 
-      p = re.compile(r"^.*main \|\s+(\d+).*", re.DOTALL)
-      #p = re.compile(r'main')
-      m = re.match(p, out.decode("utf-8") )
-      # Parse Results
-      if m:
-          hw_cycle = m.group(1)
-          if int(hw_cycle) == 0:
-            hw_cycle = 10000000
-            done = True
-      else:
-          #print ("NM")
-          hw_cycle = 10000000 # problematic 
+    p = re.compile(r"^.*main \|\s+(\d+).*", re.DOTALL)
+    #p = re.compile(r'main')
+    m = re.match(p, out.decode("utf-8") )
+    # Parse Results
+    if m:
+        hw_cycle = m.group(1)
+        if int(hw_cycle) == 0:
+          hw_cycle = 10000000
           done = True
-      #print("Cycles: %s"%hw_cycle)
-    return int(hw_cycle), done
+    else:
+        #print ("NM")
+        hw_cycle = 10000000 # problematic 
+        done = True
+    #print("Cycles: %s"%hw_cycle)
+  return int(hw_cycle), done
 
 def main():
   indices=[23, 9, 31, 0, 25, 30]

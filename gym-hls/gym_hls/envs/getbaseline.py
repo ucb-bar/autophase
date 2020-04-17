@@ -1,5 +1,33 @@
 from gym_hls.envs.hls_env import HLSEnv
 def getbaseline(bm_name='chstone', num_pgms=None, clang_opt=False):
+  """
+  Examples :
+    >>> print(getbaseline())
+    Benchmark|-O0|-O3|-O0 Runtime(s)|-O3 Runtime(s)
+    {adpcm.c}|{X}|{XX}|{XXX}|{XXXX}
+    {aes.c}|{X}|{XX}|{XXX}|{XXXX}
+    {bf.c}|{X}|{XX}|{XXX}|{XXXX}
+    {gsm.c}|{X}|{XX}|{XXX}|{XXXX}
+    {mpeg2.c}|{X}|{XX}|{XXX}|{XXXX}
+    {sha_driver.c}|{X}|{XX}|{XXX}|{XXXX}
+    {aes.c}|{X}|{XX}|{XXX}|{XXXX}
+    {bf.c}|{X}|{XX}|{XXX}|{XXXX}
+    {dfadd.c}|{X}|{XX}|{XXX}|{XXXX}
+
+  Args:
+    bm_name (str, optional): bm_name is the name of benchmarks (series of benchmarks) to use. Defaults to chstone benchmarks
+    num_pgms (int, optional): num_pgms is the number of programs to pick from a different benchmarks suite than chstone. 
+      Defaults to NONE which is 10 programs from random_bm().
+    Clang_opt (bool, optional): clang_opt should be set to True if you want to calculate the reward using the clang option. Otherwise, clang_opt should be set to False.
+
+  Raises:
+    The function terminates if the bm_name is not chstone or random.     
+
+  Returns:
+    Prints the name of each program (benchmarks), wth its o0 and o3 cycles reward (the reward is higher if the compile time of this program is less than the other programs), 
+    nd o0 and o3 compile time.
+  """
+
   import time
   if bm_name == "chstone": 
     from chstone_bm import get_chstone, get_others, get_all9
