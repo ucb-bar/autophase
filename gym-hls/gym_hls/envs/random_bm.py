@@ -3,11 +3,11 @@ from gym_hls.envs.utils import lsFiles
 from os.path import isfile, join
 import pickle
 
-def get_random(path="/scratch/qijing.huang/random_pgm/dataset", pkl_path='/scratch/qijing.huang/AutoPhase/gym-hls/gym_hls/envs/', N=None, pgm_list=None):
+
+def get_random(path="/scratch/qijing.huang/random_pgm/dataset", pkl_path=None, N=None, pgm_list=None):
   """
-  Examples :
-    >>> print(random_bm([“blob”]))
-    (“blob.c”, [ “/scratch/qijing.huang/random_pgm/dataset/blob.c", “/scratch/qijing.huang/random_pgm/dataset/skeleton/fl.txt”] )
+  Examples : >>> print(random_bm(["blob"]))
+    ("blob.c", [ "/scratch/qijing.huang/random_pgm/dataset/blob.c", "/scratch/qijing.huang/random_pgm/dataset/skeleton/fl.txt"] )
 
   Args:
     path (str, optional): path of the directory that contains the benchmarks we are interested in. Defaults to "/scratch/qijing.huang/random_pgm/dataset".
@@ -21,6 +21,15 @@ def get_random(path="/scratch/qijing.huang/random_pgm/dataset", pkl_path='/scrat
 
   import os
   cwd = os.getcwd()
+  
+  # if hls_env pkl is not set
+  if pkl_path is None:
+      autophase_path = os.getenv('AUTOPHASE_PATH')
+      if autophase_path: 
+          pkl_path = join(autophase_path, join('gym-hls', join('gym_hls','env')))
+      else: 
+          raise ValueError("ERROR: AUTOPHASE_PATH must be set in the environment!")
+    
   pkl_file = open(join(pkl_path, 'random_pgms.pkl'), 'rb')
   buckets = pickle.load(pkl_file)
   pkl_file.close()
@@ -43,4 +52,5 @@ def get_random(path="/scratch/qijing.huang/random_pgm/dataset", pkl_path='/scrat
     random_list.append((pgms[i], files))
   return random_list
 
-print(len(get_random()))
+if __name__ == "__main__":
+  print(len(get_random()))
