@@ -2,13 +2,12 @@ import re
 import subprocess
 import os
 
+
 # Available LLVM optimizatons
 # tailduplicate, simplify-libcalls, -block-placement  
-
 #opt_passes_str="-inline -jump-threading -simplifycfg -gvn -loop-rotate -codegenprepare"
 opt_passes_str = "-correlated-propagation -scalarrepl -lowerinvoke -strip -strip-nondebug -sccp -globalopt -gvn -jump-threading -globaldce -loop-unswitch -scalarrepl-ssa -loop-reduce -break-crit-edges -loop-deletion -reassociate -lcssa -codegenprepare -memcpyopt -functionattrs -loop-idiom -lowerswitch -constmerge -loop-rotate -partial-inliner -inline -early-cse -indvars -adce -loop-simplify -instcombine -simplifycfg -dse -loop-unroll -lower-expect -tailcallelim -licm -sink -mem2reg -prune-eh -functionattrs -ipsccp -deadargelim -sroa -loweratomic -terminate"
 
-    
 
 # This is not used before extra dependency in Makefile.config need to be set 
 compile_str = """
@@ -35,6 +34,7 @@ rm test_c_code.track_bb
 perl ../../../tiger/tool_source/profiling_tools/../partition_analysis/get_hw_cycle.pl test_c_code.lli_bb.trace test_c_code.acel_cycle.rpt
 """
 
+
 # Generate makefile instead, need to modify Makefile.common 119 
 ##  ifdef CUSTOM_OPT
 ##  	$(LLVM_HOME)opt $(EXTRA_OPT_FLAGS) < $(NAME).prelto.cv.bc > $(NAME).prelto.2.bc
@@ -56,6 +56,8 @@ CUSTOM_OPT=1
 EXTRA_OPT_FLAGS = opt_passes\n""" + "LEVEL = "+ os.environ["LEGUP_PATH"] + "/examples"+"""
 include $(LEVEL)/Makefile.common
 """
+
+
 def qw(s):
   """
   Examples :
@@ -70,6 +72,7 @@ def qw(s):
   """
   return tuple(s.split())
 
+
 def countPasses():
   """
   Examples :
@@ -83,6 +86,7 @@ def countPasses():
   count=len(qw(opt_passes_str))
   return count
     
+
 # Get a tuple of optimizations
 def getPasses(opt_indice):
   """
@@ -98,8 +102,8 @@ def getPasses(opt_indice):
   """
   return map((lambda x: opt_passes[x]), opt_indice)
 
-opt_passes = qw(opt_passes_str)
 
+opt_passes = qw(opt_passes_str)
 def passes2indice(passes):
   """
   Examples :
@@ -119,8 +123,8 @@ def passes2indice(passes):
       if passs == opt_passes[i]:
         indices.append(i)
         break
-  #print(indices)
   return indices
+
 
 def getHWCycles(c_code, opt_indice, path=".", sim=False):
   """
@@ -140,26 +144,23 @@ def getHWCycles(c_code, opt_indice, path=".", sim=False):
     (the second element doesn’t matter).
 
   """
-    #print(len(opt_passes))
   ga_seq = getPasses(opt_indice)
   ga_seq_str = " ".join(ga_seq)
-  #print("Passes: %s"%ga_seq_str)
 
   makefile_new = makefile_str.replace("test_c_code", c_code) 
   makefile_new = makefile_new.replace("opt_passes", ga_seq_str) 
-  #print(makefile_new)
+
   # Update the Makefile 
   f = open( path+"/Makefile","w")
   f.write(makefile_new)
   f.close()    
   done = False
+
   # Run HLS
-  #proc = subprocess.Popen(["make accelerationCycle -s"], stdout=subprocess.PIPE, shell=True)
   if sim:
     proc = subprocess.Popen(["make clean p v -s"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=path)
     (out, err) = proc.communicate()
     print(out)
-    #print(err)
     p = re.compile(r".*Cycles:\s+(\d+)", re.DOTALL)
     m = re.match(p, out.decode("utf-8") )
     if m:
@@ -167,25 +168,15 @@ def getHWCycles(c_code, opt_indice, path=".", sim=False):
         if int(hw_cycle) == 0:
           hw_cycle = 10000000
     else:
-        #print ("NM")
-        hw_cycle = 10000000 # problematic 
+        hw_cycle = 10000000 
 
   else: 
     proc = subprocess.Popen(["make clean accelerationCycle -s"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=path)
     (out, err) = proc.communicate()
-    #print(err)
-    #if (err):
-    #    print (err)
-    #    f = open(c_code+"err.trace", "w")
-    #    f.write(err)
-    #    f.close()
-
-    #print "program output:", out
-    #print "program error:", err
 
     p = re.compile(r"^.*main \|\s+(\d+).*", re.DOTALL)
-    #p = re.compile(r'main')
     m = re.match(p, out.decode("utf-8") )
+
     # Parse Results
     if m:
         hw_cycle = m.group(1)
@@ -193,11 +184,11 @@ def getHWCycles(c_code, opt_indice, path=".", sim=False):
           hw_cycle = 10000000
           done = True
     else:
-        #print ("NM")
         hw_cycle = 10000000 # problematic 
         done = True
-    #print("Cycles: %s"%hw_cycle)
+  #print("Cycles: %s"%hw_cycle)
   return int(hw_cycle), done
+
 
 def main():
   indices=[23, 9, 31, 0, 25, 30]
