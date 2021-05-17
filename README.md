@@ -1,7 +1,7 @@
 # AutoPhase: Compiler Phase-Ordering for HLS with Deep Reinforcement Learning
 
 AutoPhase is a framework that uses deep reinforcement learning (RL) to optimize the order of the passes that increase the performance of the programs by minimizing the clock cycle count. For more details, please see: 
-- [MLSys'19 AutoPhase Paper](https://arxiv.org/pdf/2003.00671.pdf)
+- [MLSys'20 AutoPhase Paper](https://arxiv.org/pdf/2003.00671.pdf)
 - [MLSys'19 AutoPhase Presentation](https://people.eecs.berkeley.edu/~qijing.huang/2020MLSys/2020SysML_AutoPhase_Presentation.pdf)
 - [FCCM'19 AutoPhase Paper](https://arxiv.org/pdf/1901.04615.pdf)
 
