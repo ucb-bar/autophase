@@ -5,7 +5,7 @@ AutoPhase is a framework that uses deep reinforcement learning (RL) to optimize 
 - [MLSys'19 AutoPhase Presentation](https://people.eecs.berkeley.edu/~qijing.huang/2020MLSys/2020SysML_AutoPhase_Presentation.pdf)
 - [FCCM'19 AutoPhase Paper](https://arxiv.org/pdf/1901.04615.pdf)
 
-This framework takes the input of a program compiles into LLVM IR. The neural network agent takes as input the features of the program (using IR Feature Extractor), clock cycle count (using Clock-cycle Profiler), and histogram of previously applied passes. Then it outputs the prediction of the best optimization passes to apply, which is used to generate new LLVM IR.  
+AutoPhase takes a program as an input and compiles into LLVM IR. The neural network agent takes as input the features of the program (using IR Feature Extractor), clock cycle count (using Clock-cycle Profiler), and histogram of previously applied passes. Then it outputs the prediction of the best next optimization pass to apply, which is used to generate a new LLVM IR.  
 
 ## Installation
 AutoPhase depends on the following open-source tools, LegUp (HLS compiler), and Ray (RL framework).
