@@ -20,7 +20,7 @@ Dependencies:
 Please refer to (patch/README.md) to install the LLVM patches. 
 
 We also compare RL against:
-- insertion-based greedy search / beam search (algos/greedy/greedy\_search.py)
+- Insertion-based greedy search / beam search (algos/greedy/greedy\_search.py)
 - DEAP (`pip install deap`)
 - OpenTuner (`pip install opentuner`)
 
